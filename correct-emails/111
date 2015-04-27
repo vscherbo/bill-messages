@@ -1,0 +1,32 @@
+0->SELECT
+1->FROM 
+2->Работники 
+3->Примечание , ЕАдрес, ЕАдрес , NULL 
+4->WHERE ЕАдрес !~* '([\w\-+]+(?:\.[\w\-+]+)*@(?:[\w\-]+\.)+[a-zA-Z]{2,7})' AND Примечание IS NULL;
+
+0->SELECT
+3->Примечание , ЕАдрес, ЕАдрес , NULL 
+1->FROM 
+2->Работники 
+4->WHERE ЕАдрес !~* '([\w\-+]+(?:\.[\w\-+]+)*@(?:[\w\-]+\.)+[a-zA-Z]{2,7})' AND Примечание IS NULL;
+
+
+0->SELECT
+1->FROM 
+2->Работники
+3->  ЕАдрес , ЕАдрес ||','|| array_to_string(regexp_matches(lower(Телефон), '[\w\-.]+@[\w\-.]+', 'i'), ','),
+4->  Телефон , regexp_replace(regexp_replace(regexp_replace(regexp_replace(Телефон, '[\w\-.]+@[\w\-.]+', ''), '\(\)', '', 'g'), '<>', '', 'g'), '\s+', ' ', 'g')
+5->WHERE Телефон ~* '[\w\-\.]+@[\w\-\.]+';
+
+0->SELECT
+3->  ЕАдрес , ЕАдрес ||','|| array_to_string(regexp_matches(lower(Телефон), '[\w\-.]+@[\w\-.]+', 'i'), ','),
+4->  Телефон , regexp_replace(regexp_replace(regexp_replace(regexp_replace(Телефон, '[\w\-.]+@[\w\-.]+', ''), '\(\)', '', 'g'), '<>', '', 'g'), '\s+', ' ', 'g')
+1->FROM 
+2->Работники
+5->WHERE Телефон ~* '[\w\-\.]+@[\w\-\.]+';
+
+first = first
+
+
+
+last = last

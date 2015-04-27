@@ -1,0 +1,45 @@
+-- Function: "fnCreateBillStatusMessage"()
+
+-- DROP FUNCTION "fnCreateBillStatusMessage"();
+
+CREATE OR REPLACE FUNCTION "fnCreateBillStatusMessage"()
+  RETURNS trigger AS
+$BODY$DECLARE 
+        mstr varchar(255);
+        mproc_str varchar := 'Заказ комплектуется.';
+        mready_str varchar := 'Заказ скомплектован и полностью оплачен.';
+        msg_processing varchar[3] := ARRAY[' Ожидает оплату.', ' Частичная оплата поступила.', ' 100% оплата поступила.']; 
+        --msg_ready varchar[3] := ARRAY[' Готов к самовывозу.', ' Отгружен через ', 'Квитанция № ']; 
+BEGIN 
+IF TG_OP = 'UPDATE' AND TG_WHEN = 'AFTER' THEN
+  --IF (NOT NEW.Интернет) AND (NEW.Статус <> OLD.Статус) THEN
+  --IF (NOT NEW.Интернет) THEN
+  IF TRUE THEN
+     CASE NEW.Статус
+        WHEN 3 THEN -- В работе
+	        mstr := mproc_str||msg_processing[OLD.Статус];
+	WHEN 6 THEN -- Скомплектован, ожидает оплату
+	        mstr := 'Заказ скомплектован, ожидает оплату.';
+	WHEN 7 THEN -- Готов
+	        mstr := mready_str;
+		IF upper(NEW.Отгрузка) = 'САМОВЫВОЗ' THEN mstr := mstr ||' Готов к самовывозу.';
+		ELSEIF length(NEW.ОтгрузкаКем) > 0 THEN mstr := mstr || ' Отгружен: ' || NEW.ОтгрузкаКем ;
+		END IF;
+	ELSE mstr := '';
+    END CASE;
+
+-- debug
+   mstr := mstr || ' old=' ||OLD.Статус ||  ' new=' ||NEW.Статус ;
+
+    IF length(mstr) > 0 THEN	
+       INSERT INTO СчетОчередьСообщений("№ счета", msg) 
+                   values (NEW."№ счета",  mstr);
+    END IF;
+  END IF; -- Интерент
+END IF; -- AFTER UPDATE
+RETURN NEW;
+END;$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION "fnCreateBillStatusMessage"()
+  OWNER TO arc_energo;
