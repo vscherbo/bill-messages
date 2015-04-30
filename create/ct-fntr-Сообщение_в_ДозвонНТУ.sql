@@ -11,10 +11,10 @@ DECLARE
 BEGIN
     --RAISE NOTICE 'IN trigger function fntr_Сообщение_в_ДозвонНТУ';
     DT := now();
-    IF NEW.msg_problem IS NOT NULL THEN 
-        loc_msg := 'Ошибка: ' || NEW.msg_problem || '/' || NEW.msg;
-    ELSE
+    IF NEW.msg_problem IS NULL OR length(NEW.msg_problem) = 0 THEN 
         loc_msg := NEW.msg;
+    ELSE
+        loc_msg := 'Ошибка: ' || NEW.msg_problem || '/' || NEW.msg;
     END IF;
     INSERT INTO "ДозвонНТУ"(
             "Счет", "Дата", "КтоЗвонил", "КомуПередал", "Примечание", status)
