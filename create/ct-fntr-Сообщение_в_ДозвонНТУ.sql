@@ -16,6 +16,7 @@ BEGIN
     ELSE
         loc_msg := 'Ошибка: ' || NEW.msg_problem || '/' || NEW.msg;
     END IF;
+    loc_msg := substring(loc_msg from 1 for 250);
     INSERT INTO "ДозвонНТУ"(
             "Счет", "Дата", "КтоЗвонил", "КомуПередал", "Примечание", status)
             -- tips)
