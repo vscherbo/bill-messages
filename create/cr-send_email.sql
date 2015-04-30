@@ -1,6 +1,6 @@
---DROP FUNCTION public.send_email(text, text, text, integer, text, text, text);
+-- DROP FUNCTION public.send_email(text, text, text, text, integer, text, text, text);
 
-CREATE OR REPLACE FUNCTION public.send_email(IN _from text, IN _password text, IN smtp text, IN port integer, IN receiver text, IN subject text, IN send_message text, OUT rc integer, OUT out_msg_qid text, OUT out_rcpt_refused text) AS
+CREATE OR REPLACE FUNCTION public.send_email(IN _from text, IN _password text, IN replyto text, IN smtp text, IN port integer, IN receiver text, IN subject text, IN send_message text, OUT rc integer, OUT out_msg_qid text, OUT out_rcpt_refused text) AS
 $BODY$
 
 import smtplib
@@ -23,6 +23,8 @@ receivers = receiver.split(",")
 msg = MIMEMultipart("alternative")
 ###msg = MIMEMultipart()
 msg.add_header('Content-Transfer-Encoding', '8bit')
+msg.add_header('Reply-To', replyto)
+msg.add_header('Errors-To', 'it@kipspb.ru')
 msg.set_charset("UTF-8")
 
 now = datetime.now(pytz.timezone('W-SU'))
@@ -31,7 +33,8 @@ date = now.strftime('%d %b %Y %X %z')
 msg["Date"] =  day + ', ' + date
 
 msg["From"] = _from
-msg["To"] = Header(receiver, 'UTF-8') 
+# msg["To"] = Header(receiver, 'UTF-8') 
+msg["To"] = receiver 
 msg['Subject'] = Header(subject, 'UTF-8')
 #msg["Subject"] = subject 
 #msg["To"] = receiver 
