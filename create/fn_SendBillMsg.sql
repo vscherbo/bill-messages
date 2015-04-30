@@ -50,7 +50,7 @@ BEGIN
                 AND b.Хозяин = e.Менеджер 
               INTO mgr_addr, mgr_name, firm_name ;
     
-        full_msg := msg_pre || msg.msg || msg_post
+        msg_post := msg_post
                 || mgr_name
                 || E', e-mail: ' || mgr_addr || E',\r\n'
                 || E'телефон:  (812)327-327-4\r\n'
@@ -66,6 +66,7 @@ BEGIN
            WHEN 1 THEN -- to manager
               to_addr := mgr_addr;
               -- full_msg := msg.msg ;
+              msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
            WHEN 2 THEN -- to file
               to_addr := msg.ЕАдрес;
               current_srv := '/tmp/email-file.txt' ;
@@ -74,6 +75,7 @@ BEGIN
                to_addr := 'it@kipspb.ru';
                full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
         END CASE;
+        full_msg := msg_pre || msg.msg || msg_post;
         -- *OLD* SELECT send_email(sender, pwd, current_srv, current_port, to_addr, 'Изменение статуса счёта № '||msg."№ счета", full_msg)
         --       INTO send_status;
         SELECT *  INTO send_status, loc_msg_qid, rcpt_refused FROM send_email(sender, pwd, current_srv, current_port, to_addr, 
