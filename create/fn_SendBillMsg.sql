@@ -78,7 +78,7 @@ BEGIN
         full_msg := msg_pre || msg.msg || msg_post;
         -- *OLD* SELECT send_email(sender, pwd, current_srv, current_port, to_addr, 'Изменение статуса счёта № '||msg."№ счета", full_msg)
         --       INTO send_status;
-        SELECT *  INTO send_status, loc_msg_qid, rcpt_refused FROM send_email(sender, pwd, current_srv, current_port, to_addr, 
+        SELECT *  INTO send_status, loc_msg_qid, rcpt_refused FROM send_email(sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
                                                                  'Изменение статуса счёта № '|| to_char(msg."№ счета", 'FM9999-9999'),
                                                                  full_msg);  
            -- UPDATE
