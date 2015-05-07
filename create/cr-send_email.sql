@@ -126,8 +126,8 @@ except smtplib.SMTPHeloError:
 if len(rcpt_refused) > 0:
   rc = 995
   out_rcpt_refused = str(rcpt_refused)
-else:
-  out_rcpt_refused = ""
+# else:
+#  out_rcpt_refused = ""
 
 #plpy.notice(str(rc)+" "+ out_rcpt_refused)
 
