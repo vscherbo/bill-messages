@@ -10,7 +10,8 @@ $BODY$DECLARE
     send_status integer;
     rcpt_refused varchar;
     full_msg varchar ;
-    msg_pre varchar ;
+    msg_pre VARCHAR = E'Это письмо сформировано автоматически, отвечать на него не нужно.\r\n\r\n' ;
+    msg_post_common VARCHAR = E'\r\n\r\nНа все Ваши вопросы Вам ответит Ваш персональный менеджер:\r\n';
     msg_post varchar ;
     to_addr varchar ;
     mgr_addr varchar ;
@@ -31,17 +32,22 @@ $BODY$DECLARE
     --sender varchar := 'root@arc.world';
 
     loc_msg_qid varchar;
+    loc_msg_problem varchar;
+    loc_msg_status INTEGER;
+
+    loc_RETURNED_SQLSTATE varchar;
+    loc_MESSAGE_TEXT varchar;
+    loc_PG_EXCEPTION_DETAIL varchar;
+    loc_PG_EXCEPTION_HINT varchar;
+    loc_PG_EXCEPTION_CONTEXT varchar;
 
 BEGIN
     cnt := 0;
-    msg_pre := E'Это письмо сформировано автоматически, отвечать на него не нужно.\r\n\r\n' ;
-    -- msg_post := E'\r\n\r\nЕсли у Вас возникли вопросы,\r\nВы можете обратиться к Вашему персональному менеджеру:\r\n';
-    msg_post := E'\r\n\r\nНа все Ваши вопросы Вам ответит Ваш персональный менеджер:\r\n';
     -- FOR msg IN SELECT * FROM СчетОчередьСообщений WHERE (msg_status > 0 AND msg_status < 500 AND msg_count <= 3) LOOP
-    FOR msg IN SELECT * FROM СчетОчередьСообщений q, vwЕАдресСчета a 
-               WHERE msg_status > 0 AND msg_status < 500 
-                     AND msg_count <= 3
-                     AND a."№ счета" = q."№ счета"
+    FOR msg IN SELECT q.*, c.ЕАдрес, b.КодРаботника
+                    FROM vwqueuedmsg q, Счета b
+                    LEFT JOIN Работники c ON  b.КодРаботника = c.КодРаботника
+                    WHERE q."№ счета" = b."№ счета"
     LOOP
         SELECT e.email, e.Имя, f.Название
               FROM Сотрудники e, Счета b, Фирма f
@@ -50,7 +56,7 @@ BEGIN
                 AND b.Хозяин = e.Менеджер 
               INTO mgr_addr, mgr_name, firm_name ;
     
-        msg_post := msg_post
+        msg_post := msg_post_common
                 || mgr_name
                 || E', e-mail: ' || mgr_addr || E',\r\n'
                 || E'телефон:  (812)327-327-4\r\n'
@@ -78,40 +84,56 @@ BEGIN
         full_msg := msg_pre || msg.msg || msg_post;
         -- *OLD* SELECT send_email(sender, pwd, current_srv, current_port, to_addr, 'Изменение статуса счёта № '||msg."№ счета", full_msg)
         --       INTO send_status;
-        SELECT *  INTO send_status, loc_msg_qid, rcpt_refused FROM send_email(sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
-                                                                 'Изменение статуса счёта № '|| to_char(msg."№ счета", 'FM9999-9999'),
-                                                                 full_msg);  
+        
+        loc_msg_problem := NULL;
+        loc_msg_qid := NULL;
+        IF to_addr IS NULL THEN
+            IF msg.КодРаботника IS NULL THEN
+                loc_msg_status := 996;
+                loc_msg_problem := 'Не указано контактное лицо';
+            ELSIF msg.ЕАдрес IS NULL THEN
+                loc_msg_status := 997;
+                loc_msg_problem := 'Не указан e-mail';
+            END IF;
+        ELSE
+            BEGIN
+                SELECT *  INTO send_status, loc_msg_qid, rcpt_refused 
+                FROM send_email(sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
+                                'Изменение статуса счёта № '|| to_char(msg."№ счета", 'FM9999-9999'), full_msg);                                
+                exception WHEN OTHERS THEN 
+                    GET STACKED DIAGNOSTICS 
+                        loc_RETURNED_SQLSTATE = RETURNED_SQLSTATE,
+                        loc_MESSAGE_TEXT = MESSAGE_TEXT,
+                        loc_PG_EXCEPTION_DETAIL = PG_EXCEPTION_DETAIL,
+                        loc_PG_EXCEPTION_HINT = PG_EXCEPTION_HINT,
+                        loc_PG_EXCEPTION_CONTEXT = PG_EXCEPTION_CONTEXT ;
+                        loc_msg_problem = format(
+                                                'RETURNED_SQLSTATE=%s, 
+                                                MESSAGE_TEXT=%s, 
+                                                PG_EXCEPTION_DETAIL=%s, 
+                                                PG_EXCEPTION_HINT=%s, 
+                                                PG_EXCEPTION_CONTEXT=%s', 
+                                                loc_RETURNED_SQLSTATE, 
+                                                loc_MESSAGE_TEXT,
+                                                loc_PG_EXCEPTION_DETAIL,
+                                                loc_PG_EXCEPTION_HINT,
+                                                loc_PG_EXCEPTION_CONTEXT );
+                        send_status := 998;
+            END;
+            loc_msg_status := coalesce(send_status, 10);
+        END IF;
            -- UPDATE
         UPDATE СчетОчередьСообщений 
         SET 
-          msg_status = coalesce(send_status, 10)
+          msg_status = loc_msg_status
           , msg_count = msg_count + 1
-          , msg_problem = rcpt_refused
+          , msg_problem = loc_msg_problem
           , msg_qid = loc_msg_qid
         WHERE id = msg.id;
         IF 0 = send_status THEN 
            cnt := cnt+1;
         END IF;
-    END LOOP; -- FOR msg with email
-    -- Defer msg with КодРаботника IS NULL 
-    FOR msg IN SELECT q.id FROM vwQueuedMsg q, Счета b
-                           WHERE q."№ счета" = b."№ счета" AND b.КодРаботника IS NULL
-    LOOP
-        UPDATE СчетОчередьСообщений
-        SET msg_status = 996, msg_problem = 'Не указано контактное лицо'
-        WHERE id = msg.id;
-    END LOOP; -- FOR msg with КодРаботника IS NULL
-    -- Defer msg without/invalid email
-    FOR msg IN SELECT q.id, q."№ счета", c.ЕАдрес, c.ФИО
-               FROM vwQueuedMsg q, Счета b, Работники c
-               WHERE q."№ счета" = b."№ счета"
-                     AND b.КодРаботника = c.КодРаботника
-                     AND c.ЕАдрес IS NULL
-    LOOP
-        UPDATE СчетОчередьСообщений 
-        SET msg_status = 997, msg_problem = 'Не указан e-mail' -- msg_problem = coalesce(msg.ЕАдрес, 'не указан e-mail')
-        WHERE id = msg.id;
-    END LOOP; -- FOR msg without email
+    END LOOP; -- FOR queued msg
     RETURN cnt;  
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
