@@ -126,10 +126,12 @@ changes := '';
 FOR fld IN SELECT column_name FROM information_schema.columns WHERE table_schema='arc_energo' AND table_name='Счета' LOOP
    EXECUTE 'SELECT ($1)."' || fld.column_name || '"::text' INTO newfld USING NEW; 
    EXECUTE 'SELECT ($1)."' || fld.column_name || '"::text' INTO oldfld USING OLD; 
-   --RAISE NOTICE 'fld=%::old=%, new=%', fld.column_name, oldfld, newfld  ; 
-   IF newfld <> oldfld THEN
+   -- RAISE NOTICE 'fld=%::old=%, new=%', fld.column_name, oldfld, newfld  ; 
+   IF (newfld is null) THEN newfld := 'NULL'; END IF;
+   IF (oldfld is null) THEN oldfld := 'NULL'; END IF;
+   IF (newfld <> oldfld) THEN
       changes := changes || 'OLD.' || fld ||'=' || oldfld || '/NEW.' || fld || '=' || newfld || ';' ;
-      --RAISE NOTICE 'CHANGED!!! %', changes ; 
+      -- RAISE NOTICE 'CHANGED!!! %', changes ; 
    END IF;
 END LOOP;
 
