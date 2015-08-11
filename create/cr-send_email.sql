@@ -70,6 +70,7 @@ msg.attach(part2)
 
 rc = 0
 out_msg_qid = ''
+out_rcpt_refused = ''
 rcpt_refused = []
 try:
     if port == -1:
@@ -104,8 +105,8 @@ try:
 
 except smtplib.SMTPServerDisconnected:
   rc = 11
-except smtplib.SMTPResponseException:
-  rc = smtplib.SMTPResponseException.smtp_code
+except smtplib.SMTPResponseException, e:
+  rc = e.smtp_code
 except smtplib.SMTPConnectError:
   rc = 15
 except smtplib.SMTPAuthenticationError:
