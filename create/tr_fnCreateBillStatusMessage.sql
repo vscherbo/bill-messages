@@ -65,7 +65,7 @@ CASE SendMode -- NEW.Статус
             loc_msg_to := 0; -- клиенту
             -- RAISE NOTICE 'WHEN % mstr=%', NEW.Статус, mstr  ; 
     WHEN 6 THEN -- Менеджеру: Скомплектован, ожидает оплату
-            mstr := mstr || ' скомплектован, ожидает оплату.';
+            mstr := mstr || ' скомплектован, ожидает доплату.';
             loc_msg_to := 1; -- менеджеру -- RAISE NOTICE 'WHEN 6 mstr=%', mstr  ; 
     -- WHEN 7 THEN
            -- loc_msg_to := 1; -- менеджеру
