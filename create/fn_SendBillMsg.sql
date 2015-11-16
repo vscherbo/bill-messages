@@ -24,7 +24,7 @@ $BODY$DECLARE
     pwd varchar := 'Never-adm1n';
 
     -- production
-    smtp_srv CONSTANT varchar := 'kipspb.ru';
+    smtp_srv CONSTANT varchar := 'smtp.kipspb.ru';
     sender varchar := 'no-reply@kipspb.ru';
 
     -- test
