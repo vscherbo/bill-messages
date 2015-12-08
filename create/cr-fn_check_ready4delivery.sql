@@ -23,10 +23,11 @@ BEGIN
                     AND Отгрузка = 'Самовывоз'
                     AND Накладная IS NULL
                     AND Фактура IS NULL
-                    AND фирма <> 'АРКОМ'
+                    -- AND фирма <> 'АРКОМ' -- физ. лица будут получать уведомления с 2015-12-08
                     AND "Дата счета" > '2014-06-01' 
                     AND Хозяин <> 91
-                    AND Сумма = fn_bill_payment("№ счета")
+                    -- AND Сумма = fn_bill_payment("№ счета")
+                    AND ( Сумма = fn_bill_payment("№ счета") OR Сумма = fn_bill_inetpayment("№ счета") )
     LOOP
         -- RAISE NOTICE '№ счета,=%', b."№ счета" ; 
 
