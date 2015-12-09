@@ -49,10 +49,16 @@ mstr := mstr || order_str;
 
 IF NEW.Статус = 10 THEN -- отгружен
    SendMode := NEW.Статус; -- посылать всем
+ELSIF NEW.Статус = 2 THEN -- оплачен
+   IF (NEW."Код" = 223719) AND is_bank_payment(NEW."№ счета") AND NOT is_inet_payment(NEW."№ счета") THEN
+       SendMode := 22; -- NEW.Статус;
+   ELSE
+       SendMode := -1; -- см. ниже CASE .. ELSE mstr := ''; НЕ посылать
+   END IF;
 ELSIF NEW."Интернет" OR (NEW."Код" = 223719) THEN -- ИнтернетЗаказ ИЛИ Физ. лицо
    SendMode := -1; -- см. ниже CASE .. ELSE mstr := ''; НЕ посылать
 ELSE
-   SendMode := NEW.Статус;
+   SendMode := NEW.Статус; -- посылать всем
 END IF;
 
 loc_msg_to := 2; -- в файл, если ниже не заданое иное
@@ -64,6 +70,8 @@ CASE SendMode -- NEW.Статус
             mstr := 'Поступила оплата по счету ' || order_str ;
             loc_msg_to := 0; -- клиенту
             -- RAISE NOTICE 'WHEN % mstr=%', NEW.Статус, mstr  ; 
+    WHEN 22 THEN
+            mstr := 'Поступила оплата по счету ' || order_str ;
     WHEN 6 THEN -- Менеджеру: Скомплектован, ожидает оплату
             mstr := mstr || ' скомплектован, ожидает доплату.';
             loc_msg_to := 1; -- менеджеру -- RAISE NOTICE 'WHEN 6 mstr=%', mstr  ; 
