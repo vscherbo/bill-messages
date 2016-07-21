@@ -97,7 +97,7 @@ CASE SendMode -- NEW.Статус
                         WHEN 4 THEN
                             url_str := E'\r\nОтследить состояние доставки Вы можете по <a href=\"http://kipspb.ru/exp_mod/ae5000_invoicenumber.php?date=' || to_char(NEW.ДокТКДата, 'DD.MM.YYYY') || E'&number=' || NEW.ДокТК || E'\">ссылке</a>\r\n';
                         WHEN 6 THEN
-                            url_str := E'\r\nОтследить состояние доставки Вы можете по <a href=\"http://kipspb.ru/exp_mod/dellin.php?number=' || NEW.ДокТК || E'\">ссылке</a>\r\n';
+                            url_str := E'\r\nОтследить состояние доставки Вы можете по <a href=\"http://dellin.ru/tracker/orders/' || NEW.ДокТК || E'\">ссылке</a>\r\n';
                         ELSE url_str = '';
                     END CASE;
                     mstr := mstr || url_str ;
