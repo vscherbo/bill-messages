@@ -24,7 +24,8 @@ sender = _from
 receivers = receiver.split(",")
 
 ### 
-msg = MIMEMultipart("alternative")
+msg = MIMEMultipart("mixed")
+#msg = MIMEMultipart("alternative")
 ###msg = MIMEMultipart()
 msg.add_header('Content-Transfer-Encoding', '8bit')
 msg.add_header('Reply-To', replyto)
@@ -63,18 +64,19 @@ space5 = "     "
 msg_html = ""
 msg_lines = send_message.splitlines()
 for mline in msg_lines:
-    msg_html = msg_html + space5 + mline + "<br>\n"
+    msg_html += space5 + mline + "<br>\n"
 
 msg_html = html_prefix + msg_html + html_suffix
 
-part1 = MIMEText(send_message, "plain", "UTF-8")
+#part1 = MIMEText(send_message, "plain", "UTF-8")
+#msg.attach(part1)
+
 part2 = MIMEText(msg_html, 'html', "UTF-8")
-msg.attach(part1)
 msg.attach(part2)
 
 # PDF attachment
-plpy.notice("attachment_file="+ attachment_file)
 if attachment_file is not None:
+    plpy.notice("attachment_file="+ attachment_file)
     fpdf = open(attachment_file, 'rb')
     att_pdf = MIMEApplication(fpdf.read(),_subtype="pdf")
     fpdf.close()
