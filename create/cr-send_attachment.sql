@@ -23,26 +23,7 @@ re_queued = re.compile('^reply: retcode .* queued as ([0-9A-F]{10,11})$')
 sender = _from
 receivers = receiver.split(",")
 
-### 
-msg = MIMEMultipart("mixed")
-#msg = MIMEMultipart("alternative")
-###msg = MIMEMultipart()
-msg.add_header('Content-Transfer-Encoding', '8bit')
-msg.add_header('Reply-To', replyto)
-msg.add_header('Errors-To', 'it@kipspb.ru')
-msg.set_charset("UTF-8")
-
-now = datetime.now(pytz.timezone('W-SU'))
-day = now.strftime('%a')
-date = now.strftime('%d %b %Y %X %z')
-msg["Date"] =  day + ', ' + date
-
-msg["From"] = _from
-# msg["To"] = Header(receiver, 'UTF-8') 
-msg["To"] = receiver 
-msg['Subject'] = Header(subject, 'UTF-8')
-#msg["Subject"] = subject 
-#msg["To"] = receiver 
+msg = MIMEMultipart("alternative")
 
 html_prefix = """\
 <html>
@@ -68,14 +49,17 @@ for mline in msg_lines:
 
 msg_html = html_prefix + msg_html + html_suffix
 
-#part1 = MIMEText(send_message, "plain", "UTF-8")
-#msg.attach(part1)
+part1 = MIMEText(send_message, "plain", "UTF-8")
+msg.attach(part1)
 
 part2 = MIMEText(msg_html, 'html', "UTF-8")
 msg.attach(part2)
 
 # PDF attachment
 if attachment_file is not None:
+    msg_body = msg
+    msg = MIMEMultipart("")
+    msg.attach(msg_body)
     plpy.notice("attachment_file="+ attachment_file)
     fpdf = open(attachment_file, 'rb')
     att_pdf = MIMEApplication(fpdf.read(),_subtype="pdf")
@@ -83,6 +67,23 @@ if attachment_file is not None:
     att_pdf.add_header('Content-Disposition','attachment',filename=os.path.basename(attachment_file))
     msg.attach(att_pdf)
     plpy.notice("attached")
+
+
+msg.add_header('Content-Transfer-Encoding', '8bit')
+msg.add_header('Reply-To', replyto)
+msg.add_header('Errors-To', 'it@kipspb.ru')
+msg.set_charset("UTF-8")
+
+now = datetime.now(pytz.timezone('W-SU'))
+day = now.strftime('%a')
+date = now.strftime('%d %b %Y %X %z')
+msg["Date"] =  day + ', ' + date
+
+msg["From"] = _from
+msg["To"] = receiver 
+msg['Subject'] = Header(subject, 'UTF-8')
+
+
 
 rc = 0
 out_msg_qid = ''
