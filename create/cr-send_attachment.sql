@@ -1,21 +1,8 @@
--- Function: public.send_attachment(text, text, text, text, integer, text, text, text, text)
+DROP FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text);
 
--- DROP FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text);
-
-CREATE OR REPLACE FUNCTION public.send_attachment(
-    IN _from text,
-    IN _password text,
-    IN replyto text,
-    IN smtp text,
-    IN port integer,
-    IN receiver text,
-    IN subject text,
-    IN send_message text,
-    IN attachment_file text,
-    OUT rc integer,
-    OUT out_msg_qid text,
-    OUT out_rcpt_refused text)
-  RETURNS record AS
+CREATE OR REPLACE FUNCTION public.send_attachment(IN _from text, IN _password text, IN replyto text, IN smtp text, IN port integer, IN receiver text, IN subject text, IN send_message text, 
+IN attachment_file text DEFAULT NULL,
+OUT rc integer, OUT out_msg_qid text, OUT out_rcpt_refused text) AS
 $BODY$
 
 import smtplib
@@ -63,6 +50,10 @@ html_prefix = """\
   </head>
   <body>
 """
+#    <p>Hi!<br>
+#       How are you?<br>
+#       Here is the <a href="http://www.python.org">link</a> you wanted.
+#    </p>
 
 html_suffix = """
   </body>
@@ -82,12 +73,14 @@ msg.attach(part1)
 msg.attach(part2)
 
 # PDF attachment
-fpdf = open(attachment_file, 'rb')
-#att_pdf = email.mime.application.MIMEApplication(fpdf.read(),_subtype="pdf")
-att_pdf = MIMEApplication(fpdf.read(),_subtype="pdf")
-fpdf.close()
-att_pdf.add_header('Content-Disposition','attachment',filename=os.path.basename(attachment_file))
-msg.attach(att_pdf)
+plpy.notice("attachment_file="+ attachment_file)
+if attachment_file is not None:
+    fpdf = open(attachment_file, 'rb')
+    att_pdf = MIMEApplication(fpdf.read(),_subtype="pdf")
+    fpdf.close()
+    att_pdf.add_header('Content-Disposition','attachment',filename=os.path.basename(attachment_file))
+    msg.attach(att_pdf)
+    plpy.notice("attached")
 
 rc = 0
 out_msg_qid = ''
@@ -157,5 +150,3 @@ return rc, out_msg_qid, out_rcpt_refused
 $BODY$
   LANGUAGE plpython2u VOLATILE
   COST 100;
-ALTER FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text)
-  OWNER TO postgres;
