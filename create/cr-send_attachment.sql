@@ -1,8 +1,21 @@
-DROP FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text);
+-- Function: public.send_attachment(text, text, text, text, integer, text, text, text, text)
 
-CREATE OR REPLACE FUNCTION public.send_attachment(IN _from text, IN _password text, IN replyto text, IN smtp text, IN port integer, IN receiver text, IN subject text, IN send_message text, 
-IN attachment_file text DEFAULT NULL,
-OUT rc integer, OUT out_msg_qid text, OUT out_rcpt_refused text) AS
+-- DROP FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text);
+
+CREATE OR REPLACE FUNCTION public.send_attachment(
+    IN _from text,
+    IN _password text,
+    IN replyto text,
+    IN smtp text,
+    IN port integer,
+    IN receiver text,
+    IN subject text,
+    IN send_message text,
+    IN attachment_files text[] DEFAULT NULL::text[],
+    OUT rc integer,
+    OUT out_msg_qid text,
+    OUT out_rcpt_refused text)
+  RETURNS record AS
 $BODY$
 
 import smtplib
@@ -56,18 +69,24 @@ part2 = MIMEText(msg_html, 'html', "UTF-8")
 msg.attach(part2)
 
 # PDF attachment
-if attachment_file is not None:
+if attachment_files is not None:
     msg_body = msg
     msg = MIMEMultipart("")
     msg.attach(msg_body)
-    plpy.notice("attachment_file="+ attachment_file)
-    fpdf = open(attachment_file, 'rb')
-    att_pdf = MIMEApplication(fpdf.read(),_subtype="pdf")
-    fpdf.close()
-    att_pdf.add_header('Content-Disposition','attachment',filename=os.path.basename(attachment_file))
-    msg.attach(att_pdf)
-    plpy.notice("attached")
-
+    for fname in attachment_files:
+        if not os.path.exists(fname):
+            plpy.notice("File '%s' does not exist.  Not attaching to email." % fname)
+            continue
+        if not os.path.isfile(fname):
+            plpy.notice("Attachment '%s' is not a file.  Not attaching to email." % fname)
+            continue
+        plpy.notice("attachment_file="+ fname)
+        fpdf = open(fname, 'rb')
+        att_pdf = MIMEApplication(fpdf.read(),_subtype="pdf")
+        fpdf.close()
+        att_pdf.add_header('Content-Disposition','attachment',filename=os.path.basename(fname))
+        msg.attach(att_pdf)
+        plpy.notice("attached")
 
 msg.add_header('Content-Transfer-Encoding', '8bit')
 msg.add_header('Reply-To', replyto)
