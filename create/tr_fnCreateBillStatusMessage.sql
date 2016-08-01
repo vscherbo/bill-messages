@@ -14,8 +14,6 @@ $BODY$DECLARE
         message_id integer;
         delivery integer;
         loc_msg_to integer;
-        -- loc_msg_status integer := 998; -- deferred while debug period
-        loc_msg_status integer := 1;
         TA_Name varchar;
         url_str varchar;
         SendMode INTEGER;
@@ -47,7 +45,7 @@ END IF;
 order_str := order_str || ' от ' || to_char(NEW."Дата счета", 'YYYY-MM-DD');
 mstr := mstr || order_str;
 
-IF (NEW.Статус = 2) AND (NEW."Код" = 223719) THEN -- оплачен физ. дицом
+IF (NEW.Статус = 2) AND (NEW."Код" = 223719) THEN -- оплачен физ. лицом
    IF is_bank_payment(NEW."№ счета") AND NOT is_inet_payment(NEW."№ счета") THEN  -- Банк и не Платрон
       SendMode := NEW.Статус; -- посылать всем
    ELSE
@@ -111,7 +109,8 @@ END CASE;
 
 IF length(mstr) > 0 THEN
    WITH inserted AS (
-        INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg) values (NEW."№ счета", loc_msg_status, loc_msg_to, mstr) RETURNING id
+        INSERT INTO СчетОчередьСообщений ("№ счета", msg_to, msg, msg_type) 
+               values (NEW."№ счета", loc_msg_to, mstr, 1) RETURNING id
    )
    SELECT id INTO message_id FROM inserted;
 END IF;
