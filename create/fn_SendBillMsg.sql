@@ -48,6 +48,7 @@ BEGIN
                     FROM vwqueuedmsg q, Счета b
                     LEFT JOIN Работники c ON  b.КодРаботника = c.КодРаботника
                     WHERE q."№ счета" = b."№ счета"
+                    AND q.msg_type = 1 -- до окончания отладки fn_sendbillmsgparam
     LOOP
         SELECT e.email, e.Имя, f.Название
               FROM Сотрудники e, Счета b, Фирма f
@@ -69,9 +70,9 @@ BEGIN
         CASE msg.msg_to
            WHEN 0 THEN -- to client
               to_addr := msg.ЕАдрес;
+              -- msg_pre := E'Уважаемый клиент!\r\n\r\n' || msg_pre;
            WHEN 1 THEN -- to manager
               to_addr := mgr_addr;
-              -- full_msg := msg.msg ;
               msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
            WHEN 2 THEN -- to file
               to_addr := msg.ЕАдрес;
@@ -82,8 +83,6 @@ BEGIN
                full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
         END CASE;
         full_msg := msg_pre || msg.msg || msg_post;
-        -- *OLD* SELECT send_email(sender, pwd, current_srv, current_port, to_addr, 'Изменение статуса счёта № '||msg."№ счета", full_msg)
-        --       INTO send_status;
         
         loc_msg_problem := NULL;
         loc_msg_qid := NULL;
