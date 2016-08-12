@@ -82,8 +82,13 @@ current_port := smtp_port ;
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
-      -- DEBUG to_addr := msg.ЕАдрес;
-      to_addr := 'vscherbo@kipspb.ru';
+      SELECT const_value INTO to_addr
+        FROM arc_constants WHERE const_name = 'autobill_msg_to';
+      IF NOT FOUND THEN 
+        to_addr := 'it@kipspb.ru'; 
+      ELSIF 'to_client' = to_addr THEN
+        to_addr := msg.ЕАдрес;
+      END IF;
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
       msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
