@@ -45,7 +45,8 @@ BEGIN
         -- loc_msg_to := 2; -- в файл
         -- loc_msg_to := 1; -- менеджеру
         loc_msg_to := 0; -- клиенту
-        INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg) values (b."№ счета", 1, loc_msg_to, mstr);
+        INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg, msg_type)
+               VALUES (b."№ счета", 1, loc_msg_to, mstr, 1);
 
     END LOOP;
 
