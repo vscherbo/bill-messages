@@ -108,14 +108,14 @@ rc = 0
 out_msg_qid = ''
 out_rcpt_refused = ''
 rcpt_refused = []
-try:
-    if port == -1:
-        feml = open(smtp, "a")
-        line = date + '<->' + sender + '<->' + receiver + '\n' + subject + '\n' + send_message + '\n'
-        feml.write(line)
-        feml.write('=============================================\n')
-        feml.close()
-    else:
+if port == -1:
+    feml = open(smtp, "a")
+    line = date + '<->' + sender + '<->' + receiver + '\n' + subject + '\n' + send_message + '\n'
+    feml.write(line)
+    feml.write('=============================================\n')
+    feml.close()
+else:
+    try:
         smtpObj = smtplib.SMTP(smtp,port)
         if smtp != 'mail.arc.world':
             smtpObj.starttls()
@@ -139,26 +139,26 @@ try:
             if qid:
                 out_msg_qid = qid.group(1)
 
-except smtplib.SMTPServerDisconnected:
-  rc = 11
-except smtplib.SMTPResponseException, e:
-  rc = e.smtp_code
-except smtplib.SMTPConnectError:
-  rc = 15
-except smtplib.SMTPAuthenticationError:
-  rc = 17
-except smtplib.SMTPException:
-  rc = 18
-except smtplib.SMTPSenderRefused:
-  rc = 12
-except smtplib.SMTPRecipientsRefused:
-  rc = 13
-except smtplib.SMTPDataError:
-  rc = 14
-except smtplib.SMTPHeloError:
-  rc = 16
-
-  smtpObj.quit()
+    except smtplib.SMTPServerDisconnected:
+      rc = 11
+    except smtplib.SMTPResponseException, e:
+      rc = e.smtp_code
+    except smtplib.SMTPConnectError:
+      rc = 15
+    except smtplib.SMTPAuthenticationError:
+      rc = 17
+    #except smtplib.SMTPException:
+    #  rc = 18
+    except smtplib.SMTPSenderRefused:
+      rc = 12
+    except smtplib.SMTPRecipientsRefused:
+      rc = 13
+    except smtplib.SMTPDataError:
+      rc = 14
+    except smtplib.SMTPHeloError:
+      rc = 16
+    finally:
+      smtpObj.quit()
 
 if len(rcpt_refused) > 0:
   rc = 995
