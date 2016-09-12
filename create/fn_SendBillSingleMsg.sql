@@ -44,6 +44,7 @@ $BODY$DECLARE
     loc_subj VARCHAR;
     arr_docs  VARCHAR[];
     str_docs TEXT;
+    loc_bcc VARCHAR;
 BEGIN
 /**
 msg.ЕАдрес
@@ -86,8 +87,12 @@ CASE msg.msg_to
         FROM arc_constants WHERE const_name = 'autobill_msg_to';
       IF NOT FOUND THEN 
         to_addr := 'it@kipspb.ru'; 
-      ELSIF 'to_client' = to_addr THEN
+      ELSIF 'to_client' = to_addr THEN -- to_client is reserved word
         to_addr := msg.ЕАдрес;
+        loc_bcc := mgr_addr;
+      ELSE
+        -- to_addr FROM arc_constants
+        loc_bcc := mgr_addr;
       END IF;
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
@@ -126,7 +131,7 @@ ELSE
         END IF;
     
         SELECT *  INTO send_status, loc_msg_qid, rcpt_refused 
-        FROM send_attachment(sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
+        FROM send_attachment(sender, pwd, mgr_addr, current_srv, current_port, to_addr, loc_bcc, 
                         loc_subj, full_msg, string_to_array(str_docs, ',') );
         exception WHEN OTHERS THEN 
             GET STACKED DIAGNOSTICS 

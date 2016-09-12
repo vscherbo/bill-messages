@@ -1,6 +1,6 @@
--- Function: public.send_attachment(text, text, text, text, integer, text, text, text, text)
+-- Function: public.send_attachment(text, text, text, text, integer, text, text, text, text, text[])
 
--- DROP FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text);
+-- DROP FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text, text[]);
 
 CREATE OR REPLACE FUNCTION public.send_attachment(
     IN _from text,
@@ -9,6 +9,7 @@ CREATE OR REPLACE FUNCTION public.send_attachment(
     IN smtp text,
     IN port integer,
     IN receiver text,
+    IN bcc text,
     IN subject text,
     IN send_message text,
     IN attachment_files text[] DEFAULT NULL::text[],
@@ -35,6 +36,8 @@ re_queued = re.compile('^reply: retcode .* queued as ([0-9A-F]{10,11})$')
 
 sender = _from
 receivers = receiver.split(",")
+if bcc is not None and bcc != '':
+    receivers += bcc.split(",")
 
 msg = MIMEMultipart("alternative")
 
@@ -172,3 +175,5 @@ return rc, out_msg_qid, out_rcpt_refused
 $BODY$
   LANGUAGE plpython2u VOLATILE
   COST 100;
+ALTER FUNCTION public.send_attachment(text, text, text, text, integer, text, text, text, text, text[])
+  OWNER TO postgres;
