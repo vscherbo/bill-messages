@@ -45,6 +45,7 @@ $BODY$DECLARE
     arr_docs  VARCHAR[];
     str_docs TEXT;
     loc_bcc VARCHAR;
+    str_bill_no VARCHAR;
 BEGIN
 /**
 msg.ЕАдрес
@@ -96,6 +97,7 @@ CASE msg.msg_to
       END IF;
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
+      loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
       msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
    WHEN 2 THEN -- to file
       to_addr := msg.ЕАдрес;
@@ -118,14 +120,18 @@ IF to_addr IS NULL THEN
         loc_msg_problem := 'Не указан e-mail';
     END IF;
 ELSE
-    BEGIN
+    BEGIN 
+        str_bill_no := to_char(msg."№ счета", 'FM9999-9999');
         IF 1 = msg.msg_type THEN
-           loc_subj := 'Изменение статуса счёта № '|| to_char(msg."№ счета", 'FM9999-9999');
+           loc_subj := 'Изменение статуса счёта № '|| str_bill_no;
         ELSIF msg.msg_type IN (2,3,4) THEN
            SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
            loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
            -- создать документы
            str_docs := fn_create_attachment(msg."№ счета", msg.msg_type);
+        ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
+           SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
+           loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
         ELSE
            RAISE 'Недопустимый тип msg_type=% в сообщении msg_id=%', msg.msg_type, msg.id;
         END IF;
