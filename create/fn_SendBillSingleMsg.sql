@@ -97,7 +97,9 @@ CASE msg.msg_to
       END IF;
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
-      loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
+      IF mgr_addr <> 'arutyun@kipspb.ru' THEN
+         loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
+      END IF;
       msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
    WHEN 2 THEN -- to file
       to_addr := msg.ЕАдрес;
