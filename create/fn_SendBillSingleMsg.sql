@@ -124,7 +124,7 @@ IF to_addr IS NULL THEN
 ELSE
     BEGIN 
         str_bill_no := to_char(msg."№ счета", 'FM9999-9999');
-        IF 1 = msg.msg_type THEN
+        IF msg.msg_type IN (1,5) THEN
            loc_subj := 'Изменение статуса счёта № '|| str_bill_no;
         ELSIF msg.msg_type IN (2,3,4) THEN
            SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
