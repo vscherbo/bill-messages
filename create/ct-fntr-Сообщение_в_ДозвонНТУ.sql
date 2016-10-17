@@ -14,7 +14,7 @@ BEGIN
     IF NEW.msg_problem IS NULL OR length(NEW.msg_problem) = 0 THEN 
         loc_msg := NEW.msg;
     ELSE
-        loc_msg := 'Ошибка: ' || NEW.msg_problem || '/' || NEW.msg;
+        loc_msg := 'Ошибка: ' || NEW.msg_problem || '/' || COALESCE(NEW.msg, 'msg IS NULL ');
     END IF;
     loc_msg := substring(loc_msg from 1 for 250);
     INSERT INTO "ДозвонНТУ"(
