@@ -120,6 +120,9 @@ BEGIN
                         send_status := 998;
             END;
             loc_msg_status := coalesce(send_status, 10);
+            IF 13 = loc_msg_status THEN
+                loc_msg_problem := COALESCE(loc_msg_problem, '') || ' rcpt_refused:' || rcpt_refused;
+            END IF;
         END IF;
            -- UPDATE
         UPDATE СчетОчередьСообщений 

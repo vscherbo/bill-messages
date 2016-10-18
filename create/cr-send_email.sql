@@ -113,8 +113,10 @@ else:
       rc = 17
     except smtplib.SMTPSenderRefused:
       rc = 12
-    except smtplib.SMTPRecipientsRefused:
+    except smtplib.SMTPRecipientsRefused, e:
       rc = 13
+      for k, v in e.recipients.items():
+        out_rcpt_refused = out_rcpt_refused + k.decode('utf-8') + "=" + str(v) + '\n'
     except smtplib.SMTPDataError:
       rc = 14
     except smtplib.SMTPHeloError:
@@ -124,13 +126,13 @@ else:
     finally:
       smtpObj.quit()
 
-if len(rcpt_refused) > 0:
-  rc = 995
-  out_rcpt_refused = str(rcpt_refused)
+#if len(rcpt_refused) > 0:
+#  rc = 995
+#  out_rcpt_refused = str(rcpt_refused)
 # else:
 #  out_rcpt_refused = ""
 
-#plpy.notice(str(rc)+" "+ out_rcpt_refused)
+#plpy.notice('send_email rc=' + str(rc)+" "+ out_rcpt_refused)
 
 return rc, out_msg_qid, out_rcpt_refused
 $BODY$
