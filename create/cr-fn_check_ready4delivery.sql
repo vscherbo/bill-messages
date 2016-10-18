@@ -8,6 +8,7 @@ $BODY$DECLARE
     b RECORD;
     mstr varchar(255);
     loc_msg_to integer;
+    msg_sent_count INTEGER;
 BEGIN
     FOR b IN SELECT "№ счета",
                     "Дата счета",
@@ -31,7 +32,6 @@ BEGIN
     LOOP
         -- RAISE NOTICE '№ счета,=%', b."№ счета" ; 
 
-        -- mstr := E'По информации в базе ';
         mstr := E'';
         IF b.предок = b."№ счета" THEN
             mstr := mstr || E'Заказ ' || to_char(b."№ счета", 'FM9999-9999');
@@ -45,9 +45,17 @@ BEGIN
         -- loc_msg_to := 2; -- в файл
         -- loc_msg_to := 1; -- менеджеру
         loc_msg_to := 0; -- клиенту
-        INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg, msg_type)
-               VALUES (b."№ счета", 1, loc_msg_to, mstr, 5); -- 5 - готов к самовывозу
 
+        /** fast patch for endless messages **/
+        SELECT COUNT(*) INTO msg_sent_count FROM "СчетОчередьСообщений"
+        WHERE 
+            msg_type=5
+            -- AND msg_status=999 
+            AND "№ счета" = b."№ счета";
+        IF msg_sent_count < 3 THEN
+            INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg, msg_type)
+                   VALUES (b."№ счета", 1, loc_msg_to, mstr, 5); -- 5 - готов к самовывозу
+        END IF; -- less than 3
     END LOOP;
 
 END;$BODY$
