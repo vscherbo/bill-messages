@@ -48,4 +48,6 @@ $PSQL -U arc_energo -d arc_energo -c "UPDATE СчетОчередьСообще�
 cat $DTLOG >> $LOG 
 
 find $LOG_DIR -type f -name "${DTLOG_MASK}" -mtime +7 |xargs rm -f 
+find $CSV_DIR -type f -name "no-reply-sent*.csv" -mtime +7 |xargs rm -f
+
 
