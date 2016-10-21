@@ -8,56 +8,69 @@ $BODY$DECLARE
     b RECORD;
     mstr varchar(255);
     loc_msg_to integer;
-    msg_sent_count INTEGER;
+    cnt INTEGER;
+    do_send BOOLEAN := FALSE;
+    _now TIMESTAMP WITHOUT TIME ZONE;
+    loc_last_interval INTERVAL;
+    loc_last_reminder_ts TIMESTAMP WITHOUT TIME ZONE;
 BEGIN
-    FOR b IN SELECT "№ счета",
-                    "Дата счета",
-                    -- Хозяин, 
-                    -- fn_bill_payment("№ счета") AS Paym, 
-                    предок,
-                    Сумма
-                FROM Счета
-                WHERE 
-                    Готов = 't'
-                    AND Отгружен = 'f'
-                    AND Отменен = 'f'
-                    AND Отгрузка = 'Самовывоз'
-                    AND Накладная IS NULL
-                    AND Фактура IS NULL
-                    -- AND фирма <> 'АРКОМ' -- физ. лица будут получать уведомления с 2015-12-08
-                    AND "Дата счета" > '2014-06-01' 
-                    AND Хозяин <> 91
-                    -- AND Сумма = fn_bill_payment("№ счета")
-                    AND ( Сумма = fn_bill_payment("№ счета") OR Сумма = fn_bill_inetpayment("№ счета") )
-    LOOP
-        -- RAISE NOTICE '№ счета,=%', b."№ счета" ; 
+FOR b IN SELECT "№ счета", "Дата счета", предок, Сумма
+    FROM Счета
+    WHERE 
+        Готов = 't'
+        AND Отгружен = 'f'
+        AND Отменен = 'f'
+        AND Отгрузка = 'Самовывоз'
+        AND Накладная IS NULL
+        AND Фактура IS NULL
+        AND "Дата счета" > '2014-06-01' 
+        AND Хозяин <> 91
+        AND ( Сумма = fn_bill_payment("№ счета") OR Сумма = fn_bill_inetpayment("№ счета") )
+        AND r4d_sent_count("№ счета")<3
+        AND r4d_send_errors_count("№ счета")=0
+LOOP
+    -- RAISE NOTICE '№ счета,=%', b."№ счета" ; 
 
-        mstr := E'';
-        IF b.предок = b."№ счета" THEN
-            mstr := mstr || E'Заказ ' || to_char(b."№ счета", 'FM9999-9999');
-        ELSE 
-            mstr := mstr || E'Заказ ' || to_char(b.предок, 'FM9999-9999') || '/' || to_char(b."№ счета", 'FM9999-9999');
-        END IF;
-        mstr := mstr || E' от ' || to_char(b."Дата счета", 'YYYY-MM-DD');
+    mstr := E'';
+    IF b.предок = b."№ счета" THEN
+        mstr := mstr || E'Заказ ' || to_char(b."№ счета", 'FM9999-9999');
+    ELSE
+        mstr := mstr || E'Заказ ' || to_char(b.предок, 'FM9999-9999') || '/' || to_char(b."№ счета", 'FM9999-9999');
+    END IF;
+    mstr := mstr || E' от ' || to_char(b."Дата счета", 'YYYY-MM-DD');
 
-        -- mstr := mstr || E' скомплектован и полностью оплачен. Готов к самовывозу. \r\nЕсли это не так, сообщите об этом в отдел ИТ.';
-        mstr := mstr || E' скомплектован и полностью оплачен. Готов к самовывозу.\r\n';
-        -- loc_msg_to := 2; -- в файл
-        -- loc_msg_to := 1; -- менеджеру
-        loc_msg_to := 0; -- клиенту
+    mstr := mstr || E' скомплектован и полностью оплачен. Готов к самовывозу.\r\n';
+    loc_msg_to := 0; -- клиенту, 2 - в файл, 1 - менеджеру
 
-        /** fast patch for endless messages **/
-        SELECT COUNT(*) INTO msg_sent_count FROM "СчетОчередьСообщений"
-        WHERE 
-            msg_type=5
-            -- AND msg_status=999 
-            AND "№ счета" = b."№ счета";
-        IF msg_sent_count < 3 THEN
-            INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg, msg_type)
-                   VALUES (b."№ счета", 1, loc_msg_to, mstr, 5); -- 5 - готов к самовывозу
-        END IF; -- less than 3
-    END LOOP;
+    cnt := r4d_sent_count(b."№ счета");
+    _now := now(); -- DEBUG +'3 days'::INTERVAL;
+    loc_last_reminder_ts := r4d_last_reminder_timestamp(b."№ счета");
+    loc_last_interval := _now - loc_last_reminder_ts;
 
+    RAISE NOTICE '№ счета=%, Дата счета=%, сообщений=%', b."№ счета", b."Дата счета", cnt;
+    IF cnt = 0 THEN
+        RAISE NOTICE 'Send 1st reminder';
+        do_send := TRUE;
+    ELSIF cnt = 1 THEN -- there was 1st reminder
+      RAISE NOTICE '=== last_reminder=%', loc_last_reminder_ts;
+      IF loc_last_interval >= '3 days'::INTERVAL 
+      THEN
+         RAISE NOTICE '=====2nd reminder::%', loc_last_interval;
+         do_send := TRUE;
+      END IF;
+    ELSIF cnt = 2 THEN -- there was 2nd reminder
+      IF loc_last_interval >= '7 days'::INTERVAL 
+      THEN
+         RAISE NOTICE '######## ДозвонНТУ::%', loc_last_interval;
+      END IF; -- 7 days
+    END IF;
+
+    IF do_send THEN
+        INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg, msg_type)
+                                  VALUES (b."№ счета", 1, loc_msg_to, mstr, 5); -- 5 - готов к самовывозу
+    END IF;
+
+END LOOP;
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
