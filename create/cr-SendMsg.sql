@@ -1,6 +1,6 @@
--- Function: sendmsg(integer, text, text, text, text, text, text, text, text)
+-- Function: sendmsg(integer, text, text, text, text, text, text, text, text[])
 
--- DROP FUNCTION sendmsg(integer, text, text, text, text, text, text, text, text);
+-- DROP FUNCTION sendmsg(integer, text, text, text, text, text, text, text, text[]);
 
 CREATE OR REPLACE FUNCTION sendmsg(
     a_msg_id integer,
@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION sendmsg(
     full_msg text,
     subj text DEFAULT ''::text,
     bcc text DEFAULT ''::text,
-    str_docs text DEFAULT NULL::text)
+    str_docs text[] DEFAULT NULL::text[])
   RETURNS void AS
 $BODY$
 DECLARE
@@ -38,15 +38,15 @@ DECLARE
     loc_PG_EXCEPTION_CONTEXT TEXT;
 BEGIN
 
-/** debug **/
+/** debug **
     smtp_srv := 'mail.arc.world';
     loc_sender := 'root@arc.world';
-/**/
+**/
 
-/** production **
+/** production **/
     smtp_srv := 'smtp.kipspb.ru';
     loc_sender := sender;
-**/
+/**/
 
 SELECT * INTO msg FROM vwqueuedmsg WHERE id = a_msg_id;
 
@@ -102,6 +102,5 @@ WHERE id = a_msg_id;
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION sendmsg(integer, text, text, text, text, text, text, text, text)
+ALTER FUNCTION sendmsg(integer, text, text, text, text, text, text, text, text[])
   OWNER TO arc_energo;
-
