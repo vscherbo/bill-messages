@@ -13,6 +13,7 @@ $BODY$DECLARE
     _now TIMESTAMP WITHOUT TIME ZONE;
     loc_last_interval INTERVAL;
     loc_last_reminder_ts TIMESTAMP WITHOUT TIME ZONE;
+    loc_dbg_str TEXT;
 BEGIN
 FOR b IN SELECT "№ счета", "Дата счета", предок, Сумма
     FROM Счета
@@ -47,21 +48,22 @@ LOOP
     loc_last_reminder_ts := r4d_last_reminder_timestamp(b."№ счета");
     loc_last_interval := _now - loc_last_reminder_ts;
 
-    RAISE NOTICE '№ счета=%, Дата счета=%, сообщений=%', b."№ счета", b."Дата счета", cnt;
+    loc_dbg_str := format('№ счета=%s, Дата счета=%s, сообщений=%s', b."№ счета", b."Дата счета", cnt);
+    do_send := FALSE;
     IF cnt = 0 THEN
-        RAISE NOTICE 'Send 1st reminder';
+        RAISE NOTICE 'Send 1st reminder %', loc_dbg_str;
         do_send := TRUE;
     ELSIF cnt = 1 THEN -- there was 1st reminder
-      RAISE NOTICE '=== last_reminder=%', loc_last_reminder_ts;
+      RAISE NOTICE '=== last_reminder=% / %' , loc_last_reminder_ts, loc_dbg_str;
       IF loc_last_interval >= '3 days'::INTERVAL 
       THEN
-         RAISE NOTICE '=====2nd reminder::%', loc_last_interval;
+         RAISE NOTICE '=====2nd reminder::% / %', loc_last_interval, loc_dbg_str;
          do_send := TRUE;
       END IF;
     ELSIF cnt = 2 THEN -- there was 2nd reminder
       IF loc_last_interval >= '7 days'::INTERVAL 
       THEN
-         RAISE NOTICE '######## ДозвонНТУ::%', loc_last_interval;
+         RAISE NOTICE '######## ДозвонНТУ::% / %', loc_last_interval, loc_dbg_str;
       END IF; -- 7 days
     END IF;
 
