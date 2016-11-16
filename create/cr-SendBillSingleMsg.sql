@@ -1,5 +1,9 @@
+-- Function: sendbillsinglemsg(integer)
+
+-- DROP FUNCTION sendbillsinglemsg(integer);
+
 CREATE OR REPLACE FUNCTION sendbillsinglemsg(a_msg_id integer)
-  RETURNS integer AS
+  RETURNS void AS
 $BODY$DECLARE
     msg RECORD;
     send_status integer;
@@ -22,7 +26,7 @@ $BODY$DECLARE
 
     loc_order_no VARCHAR;
     loc_subj VARCHAR;
-    str_docs TEXT;
+    str_docs varchar;
     loc_bcc VARCHAR;
     str_bill_no VARCHAR;
 BEGIN
@@ -33,6 +37,11 @@ SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
    WHERE
        q."№ счета" = b."№ счета"
        AND q.id = a_msg_id;
+
+IF NOT FOUND THEN
+   RAISE NOTICE 'Не найдено сообщение с id=%, формирование письма прервано', quote_nullable(a_msg_id);
+   RETURN; 
+END IF;
 
 SELECT e.email, e.Имя, f.Название
     FROM Сотрудники e, Счета b, Фирма f
@@ -83,6 +92,12 @@ IF to_addr IS NULL THEN
         loc_msg_status := 997;
         loc_msg_problem := 'Не указан e-mail';
     END IF;
+    UPDATE СчетОчередьСообщений SET
+                  msg_status = loc_msg_status
+                  , msg_count = msg_count + 1
+                  , msg_problem = loc_msg_problem
+                  -- , msg_qid = loc_msg_qid
+    WHERE id = msg.msg_id;
 ELSE
     str_bill_no := to_char(msg."№ счета", 'FM9999-9999');
     IF msg.msg_type IN (1,5) THEN
@@ -99,14 +114,16 @@ ELSE
        RAISE 'Недопустимый тип msg_type=% в сообщении msg_id=%', msg.msg_type, msg.id;
     END IF;
 
-    loc_msg_status := sendmsg(a_msg_id,
-                              sender, pwd, mgr_addr, to_addr, loc_bcc, 
-                              loc_subj, full_msg, string_to_array(str_docs, ',') );
+    PERFORM sendmsg(a_msg_id,
+                    sender::TEXT, pwd::TEXT, mgr_addr::TEXT, to_addr::TEXT, 
+                    full_msg::TEXT, 
+                    loc_subj::TEXT, 
+                    loc_bcc::TEXT, 
+                    str_docs::TEXT );
 END IF;
             
-RETURN loc_msg_status;
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION fn_sendbillsinglemsg(integer)
+ALTER FUNCTION sendbillsinglemsg(integer)
   OWNER TO arc_energo;
