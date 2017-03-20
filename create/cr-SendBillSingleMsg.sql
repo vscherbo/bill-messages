@@ -59,6 +59,10 @@ msg_post := msg_post_common
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
+      /**
+      to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес);
+      loc_bcc := mgr_addr;
+      **/
       SELECT const_value INTO to_addr
         FROM arc_constants WHERE const_name = 'autobill_msg_to';
       IF NOT FOUND THEN 
