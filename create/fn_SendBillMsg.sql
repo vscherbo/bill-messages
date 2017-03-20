@@ -48,7 +48,7 @@ BEGIN
                     FROM vwqueuedmsg q, Счета b
                     LEFT JOIN Работники c ON  b.КодРаботника = c.КодРаботника
                     WHERE q."№ счета" = b."№ счета"
-                    AND q.msg_type IN (1,5) -- до окончания отладки fn_sendbillmsgparam
+                    AND q.msg_type IN (1,5) -- до окончания отладки sendbillmsgparam
     LOOP
         SELECT e.email, e.Имя, f.Название
               FROM Сотрудники e, Счета b, Фирма f
