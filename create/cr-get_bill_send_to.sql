@@ -13,7 +13,9 @@ IF NOT FOUND THEN
     loc_to := 'it@kipspb.ru'; 
 ELSE
     IF 'to_client' = loc_to THEN -- to_client is reserved word
-        IF a_emp_code IN (SELECT "КодРаботника" FROM emp_company WHERE "Код" IN (-1) -- (250531,210282,210243,216453,233690,252638)
+        IF a_emp_code IN (SELECT "КодРаботника" FROM emp_company WHERE "Код" IN
+                                                                       -- (250531,210282,210243,216453,233690,252638)
+                                                                       (-1)
                          ) THEN -- short dealers list 
             loc_to := a_to_addr; -- overwrite to_addr value FROM arc_constants
         ELSE

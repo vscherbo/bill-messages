@@ -59,10 +59,11 @@ msg_post := msg_post_common
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
-      /**
+      /**/
       to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес);
       loc_bcc := mgr_addr;
-      **/
+      /**/
+      /**
       SELECT const_value INTO to_addr
         FROM arc_constants WHERE const_name = 'autobill_msg_to';
       IF NOT FOUND THEN 
@@ -74,6 +75,7 @@ CASE msg.msg_to
         -- to_addr FROM arc_constants
         loc_bcc := mgr_addr;
       END IF;
+      **/
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
       IF mgr_addr <> 'arutyun@kipspb.ru' THEN
@@ -118,12 +120,15 @@ ELSE
        RAISE 'Недопустимый тип msg_type=% в сообщении msg_id=%', msg.msg_type, msg.id;
     END IF;
 
+    -- RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
+    /**/
     PERFORM sendmsg(a_msg_id,
                     sender::TEXT, pwd::TEXT, mgr_addr::TEXT, to_addr::TEXT, 
                     full_msg::TEXT, 
                     loc_subj::TEXT, 
                     loc_bcc::TEXT, 
                     str_docs::TEXT );
+    /**/
 END IF;
             
 END;$BODY$
