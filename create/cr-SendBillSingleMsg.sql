@@ -61,7 +61,7 @@ CASE msg.msg_to
    WHEN 0 THEN -- to client
       /**/
       to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес);
-      loc_bcc := mgr_addr;
+      loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
       /**/
       /**
       SELECT const_value INTO to_addr
