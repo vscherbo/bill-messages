@@ -24,3 +24,6 @@ COMMENT ON COLUMN inet_orders_status_queue.io_status IS 'Новый статус
 COMMENT ON COLUMN inet_orders_status_queue.io_update_result IS 'Результат обновления на сайте: 0-успешно';
 COMMENT ON COLUMN inet_orders_status_queue.io_update_timestamp IS 'Дата-время операции обновления на сайте.';
 
+CREATE TRIGGER "tr_inet_order_status_AI" AFTER INSERT
+   ON inet_orders_status_queue FOR EACH ROW
+   EXECUTE PROCEDURE arc_energo.fntr_update_inet_order_status();
