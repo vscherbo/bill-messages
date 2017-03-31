@@ -68,7 +68,8 @@ CREATE TRIGGER "trg_msg_status_AU"
   AFTER UPDATE OF msg_status
   ON "СчетОчередьСообщений"
   FOR EACH ROW
-  WHEN (((new.msg_status >= 10) AND (new.msg_status <> old.msg_status)))
+  -- WHEN (((new.msg_status >= 10) AND (new.msg_status <> old.msg_status)))
+  WHEN (new.msg_status <> old.msg_status)
   EXECUTE PROCEDURE "fntr_Сообщение_в_ДозвонНТУ"();
 COMMENT ON TRIGGER "trg_msg_status_AU" ON "СчетОчередьСообщений" IS 'При присвоении msg_status значения >= 10 (сообщение об ошибке или пришла квитанция о доставке) заносит сообщение в ДозвонНТУ';
 
