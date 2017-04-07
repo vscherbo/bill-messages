@@ -15,6 +15,8 @@ CREATE TABLE "СчетОчередьСообщений"
   msg_problem character varying,
   msg_qid character varying(11),
   msg_type integer, -- Тип сообщения:...
+  msg_subj character varying, -- тема (subject) сообщения
+  msg_sent_to character varying,
   CONSTRAINT "PK_СчетОчередьСообщений" PRIMARY KEY (id),
   CONSTRAINT "FK_Счета" FOREIGN KEY ("№ счета")
       REFERENCES "Счета" ("№ счета") MATCH SIMPLE
@@ -47,7 +49,12 @@ COMMENT ON COLUMN "СчетОчередьСообщений".msg_type IS 'Тип
 1 - статус счёта
 2 - бланк-заказа
 3 - бланк-заказа и квитанция
-4 - счёт-факс';
+4 - счёт-факс
+5 - готов к самовывозу (разновидность 1)
+6 - запрос акта сверки
+7 - отправка акта сверки
+9 - оповещение менеджера о создании автосчёта';
+COMMENT ON COLUMN "СчетОчередьСообщений".msg_subj IS 'тема (subject) сообщения';
 
 
 -- Index: "idx_СчетОчередьСообщений_bill_no"
@@ -59,18 +66,25 @@ CREATE INDEX "idx_СчетОчередьСообщений_bill_no"
   USING btree
   ("№ счета");
 
+-- Index: "idx_СчетОчередьСообщений_qid"
+
+-- DROP INDEX "idx_СчетОчередьСообщений_qid";
+
+CREATE INDEX "idx_СчетОчередьСообщений_qid"
+  ON "СчетОчередьСообщений"
+  USING btree
+  (msg_qid COLLATE pg_catalog."default");
+
 
 -- Trigger: trg_msg_status_AU on "СчетОчередьСообщений"
 
 -- DROP TRIGGER "trg_msg_status_AU" ON "СчетОчередьСообщений";
 
 CREATE TRIGGER "trg_msg_status_AU"
-  AFTER UPDATE OF msg_status
+  AFTER UPDATE OF msg_status, msg_sent_to
   ON "СчетОчередьСообщений"
   FOR EACH ROW
-  -- WHEN (((new.msg_status >= 10) AND (new.msg_status <> old.msg_status)))
-  WHEN (new.msg_status <> old.msg_status)
-  EXECUTE PROCEDURE "fntr_Сообщение_в_ДозвонНТУ"();
-COMMENT ON TRIGGER "trg_msg_status_AU" ON "СчетОчередьСообщений" IS 'При присвоении msg_status значения >= 10 (сообщение об ошибке или пришла квитанция о доставке) заносит сообщение в ДозвонНТУ';
+  WHEN (((old.msg_status IS NULL) OR (new.msg_status <> old.msg_status) OR (old.msg_sent_to IS NULL)))
+  EXECUTE PROCEDURE "fntr_СообщениеОбновлено"();
 
 
