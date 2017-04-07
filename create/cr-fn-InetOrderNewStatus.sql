@@ -21,7 +21,7 @@ BEGIN
         loc_inet_order_status := 'D'; -- отгружен
     END IF;
 
-    -- RAISE NOTICE 'loc_inet_order_status=%', loc_inet_order_status  ; 
+    RAISE NOTICE 'loc_inet_order_status=%', loc_inet_order_status  ; 
     IF loc_inet_order_status IS NOT NULL 
     THEN
         INSERT INTO inet_orders_status_queue(io_id, io_status) VALUES(inet_order_id::INTEGER, loc_inet_order_status);
