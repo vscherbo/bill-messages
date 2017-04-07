@@ -21,7 +21,7 @@ ELSE
             loc_to := a_to_addr;
             RAISE NOTICE 'Shortlist КодРаботника=%, to_addr=%', a_emp_code, a_to_addr;
         ELSE -- Если не дилер-тестер, то заменяем получателя
-            loc_to := 'arutyun@kipspb.ru,vscherbo@kipspb.ru';
+            loc_to := 'arutyun@kipspb.ru';
         END IF;
     END IF;
 END IF; -- NOT FOUND
