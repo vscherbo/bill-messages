@@ -125,12 +125,13 @@ BEGIN
             END IF;
         END IF;
            -- UPDATE
-        UPDATE СчетОчередьСообщений 
+        UPDATE "СчетОчередьСообщений"
         SET 
           msg_status = loc_msg_status
           , msg_count = msg_count + 1
           , msg_problem = loc_msg_problem
           , msg_qid = loc_msg_qid
+          , msg_sent_to = to_addr
         WHERE id = msg.id;
         IF 0 = send_status THEN 
            cnt := cnt+1;
