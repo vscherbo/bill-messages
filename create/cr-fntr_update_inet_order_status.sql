@@ -7,8 +7,12 @@ CREATE OR REPLACE FUNCTION fntr_update_inet_order_status()
 $BODY$DECLARE
 cmd character varying;
 res_exec RECORD;
+loc_io_update_result INTEGER;
+loc_io_update_msg VARCHAR;
+loc_io_update_timestamp timestamp without time zone;
 loc_site VARCHAR := 'kipspb-fl.arc.world';
 BEGIN
+loc_site := site();
 
 cmd := format(E'php $ARC_PATH/order-status-safe-update.php %s %s', NEW.io_id::VARCHAR, NEW.io_status);
 IF cmd IS NULL
@@ -19,14 +23,21 @@ ELSE
 
     IF res_exec.err_str <> ''
     THEN
-       NEW.io_update_result := 1;
-       NEW.io_update_msg := format('ERROR: cmd=%s, out=%s, err=%s', cmd, res_exec.out_str, res_exec.err_str);
+       loc_io_update_result := 1;
+       loc_io_update_msg := format('ERROR: cmd=%s, out=%s, err=%s, site=%s', cmd, res_exec.out_str, res_exec.err_str, loc_site);
     ELSE
-       NEW.io_update_result := 0;
-       NEW.io_update_msg := 'kipspb.ru updated';
+       loc_io_update_result := 0;
+       loc_io_update_msg := loc_site || ' updated';
     END IF;
-    NEW.io_update_timestamp := clock_timestamp();
+    loc_io_update_timestamp := clock_timestamp();
 END IF;
+
+UPDATE inet_orders_status_queue
+SET 
+    io_update_result = loc_io_update_result
+    , io_update_msg = loc_io_update_msg
+    , io_update_timestamp = loc_io_update_timestamp
+WHERE id=NEW.id;
 
 RETURN NEW;
 END;$BODY$
