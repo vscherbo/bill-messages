@@ -20,7 +20,6 @@ $BODY$DECLARE
     sender varchar := 'no-reply@kipspb.ru';
     pwd varchar := 'Never-adm1n';
 
-    loc_msg_qid varchar;
     loc_msg_problem varchar;
     loc_msg_status INTEGER;
 
@@ -59,23 +58,15 @@ msg_post := msg_post_common
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
-      /**/
       to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес);
-      loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
-      /**/
-      /**
-      SELECT const_value INTO to_addr
-        FROM arc_constants WHERE const_name = 'autobill_msg_to';
-      IF NOT FOUND THEN 
-        to_addr := 'it@kipspb.ru'; 
-      ELSIF 'to_client' = to_addr THEN -- to_client is reserved word
-        to_addr := msg.ЕАдрес;
-        loc_bcc := mgr_addr;
-      ELSE
-        -- to_addr FROM arc_constants
-        loc_bcc := mgr_addr;
+      -- если to_addr содержит arutyun, т.е. не Дилер-тестер
+      -- и при этом mgr_addr не arutyun, т.е. счёт дилерский и Хозяин не arutyun
+      -- меняем адресата: вместо arutyun - менеджер-хозяин
+      IF mgr_addr <> 'arutyun@kipspb.ru' AND position('arutyun@kipspb.ru' in to_addr) > 0
+      THEN
+        to_addr := mgr_addr;
       END IF;
-      **/
+      loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
       IF mgr_addr <> 'arutyun@kipspb.ru' THEN
@@ -98,12 +89,6 @@ IF to_addr IS NULL THEN
         loc_msg_status := 997;
         loc_msg_problem := 'Не указан e-mail';
     END IF;
-    UPDATE СчетОчередьСообщений SET
-                  msg_status = loc_msg_status
-                  , msg_count = msg_count + 1
-                  , msg_problem = loc_msg_problem
-                  -- , msg_qid = loc_msg_qid
-    WHERE id = msg.msg_id;
 ELSE
     str_bill_no := to_char(msg."№ счета", 'FM9999-9999');
     IF msg.msg_type IN (1,5) THEN
@@ -113,6 +98,7 @@ ELSE
        loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
        -- создать документы
        str_docs := fn_create_attachment(msg."№ счета", msg.msg_type);
+       RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
        SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
        loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
@@ -128,9 +114,22 @@ ELSE
                     loc_subj::TEXT, 
                     loc_bcc::TEXT, 
                     str_docs::TEXT );
+    loc_msg_status := 0;
     /**/
-END IF;
-            
+END IF; -- to_addr
+
+UPDATE "СчетОчередьСообщений" SET
+              msg_status = loc_msg_status
+              , msg_count = msg_count + 1
+              , msg_problem = loc_msg_problem
+              , msg_sent_to = to_addr
+WHERE id = msg.id;
+IF NOT FOUND THEN
+   RAISE NOTICE 'sendbillsinglemsg:: NOT FOUND msg.id=% for to_addr=%', msg.id, to_addr;
+ELSE
+   RAISE NOTICE 'sendbillsinglemsg:: UPDATED msg.id=% for to_addr=% loc_msg_status=%', msg.id, to_addr, loc_msg_status;
+END IF;      
+      
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
