@@ -1,6 +1,6 @@
--- Function: sendmsg(integer, text, text, text, text, text, text, text, text[])
+-- Function: sendmsg(integer, text, text, text, text, text, text, text, text)
 
-DROP FUNCTION sendmsg(integer, text, text, text, text, text, text, text, text[]);
+-- DROP FUNCTION sendmsg(integer, text, text, text, text, text, text, text, text);
 
 CREATE OR REPLACE FUNCTION sendmsg(
     a_msg_id integer,
@@ -37,16 +37,12 @@ DECLARE
     loc_PG_EXCEPTION_HINT TEXT;
     loc_PG_EXCEPTION_CONTEXT TEXT;
 BEGIN
-
-/** debug **
-    smtp_srv := 'mail.arc.world';
-    loc_sender := 'root@arc.world';
-**/
-
-/** production **/
-    smtp_srv := 'smtp.kipspb.ru';
+smtp_srv := smtphost();
+IF pg_production() THEN
     loc_sender := sender;
-/**/
+ELSE
+    loc_sender := 'root@arc.world';
+END IF;
 
 SELECT * INTO msg FROM vwqueuedmsg WHERE id = a_msg_id;
 
