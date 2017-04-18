@@ -69,15 +69,17 @@ CASE msg.msg_to
       loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
+      /**
       IF mgr_addr <> 'arutyun@kipspb.ru' THEN
          loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
       END IF;
+      **/
       msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
    WHEN 2 THEN -- to file
       to_addr := msg.ЕАдрес;
    ELSE
-       to_addr := 'it@kipspb.ru';
-       full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
+      to_addr := 'it@kipspb.ru';
+      full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
 END CASE;
 full_msg := msg_pre || msg.msg || msg_post;
 
