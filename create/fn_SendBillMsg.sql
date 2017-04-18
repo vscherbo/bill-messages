@@ -21,15 +21,9 @@ $BODY$DECLARE
     current_port integer;
     current_srv varchar;
     smtp_port CONSTANT integer := 25;
-    pwd varchar := 'Never-adm1n';
-
-    -- production
-    smtp_srv CONSTANT varchar := 'smtp.kipspb.ru';
-    sender varchar := 'no-reply@kipspb.ru';
-
-    -- test
-    --smtp_srv CONSTANT varchar := 'mail.arc.world';
-    --sender varchar := 'root@arc.world';
+    smtp_srv varchar;
+    pwd varchar;
+    sender varchar;
 
     loc_msg_qid varchar;
     loc_msg_problem varchar;
@@ -40,15 +34,24 @@ $BODY$DECLARE
     loc_PG_EXCEPTION_DETAIL varchar;
     loc_PG_EXCEPTION_HINT varchar;
     loc_PG_EXCEPTION_CONTEXT varchar;
-
+    
 BEGIN
+    smtp_srv := smtphost();
+    IF pg_production() THEN
+        pwd := 'Never-adm1n';
+        sender := 'no-reply@kipspb.ru';
+    ELSE
+        pwd := '';
+        sender := 'root@arc.world';
+    END IF;
+
     cnt := 0;
     -- FOR msg IN SELECT * FROM СчетОчередьСообщений WHERE (msg_status > 0 AND msg_status < 500 AND msg_count <= 3) LOOP
     FOR msg IN SELECT q.*, c.ЕАдрес, b.КодРаботника
                     FROM vwqueuedmsg q, Счета b
                     LEFT JOIN Работники c ON  b.КодРаботника = c.КодРаботника
                     WHERE q."№ счета" = b."№ счета"
-                    AND q.msg_type IN (1,5) -- до окончания отладки sendbillmsgparam
+                    AND q.msg_type IN (1,5,11) -- до окончания отладки sendbillmsgparam
     LOOP
         SELECT e.email, e.Имя, f.Название
               FROM Сотрудники e, Счета b, Фирма f
@@ -95,6 +98,11 @@ BEGIN
                 loc_msg_problem := 'Не указан e-mail';
             END IF;
         ELSE
+            SELECT format('sender=%s, pwd=%s, mgr_addr=%s, current_srv=%s, current_port=%s, to_addr=%s, subj=%s, msg=%s', 
+                            sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
+                            'Изменение статуса счёта № '|| to_char(msg."№ счета", 'FM9999-9999'), full_msg) INTO loc_MESSAGE_TEXT ;
+            RAISE NOTICE '######################################## %', loc_MESSAGE_TEXT;
+            /*** DEBUG ***/
             BEGIN
                 SELECT *  INTO send_status, loc_msg_qid, rcpt_refused 
                 FROM send_email(sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
@@ -119,6 +127,7 @@ BEGIN
                                                 loc_PG_EXCEPTION_CONTEXT );
                         send_status := 998;
             END;
+            /***/
             loc_msg_status := coalesce(send_status, 10);
             IF 13 = loc_msg_status THEN
                 loc_msg_problem := COALESCE(loc_msg_problem, '') || ' rcpt_refused:' || rcpt_refused;
