@@ -17,6 +17,7 @@ $BODY$DECLARE
         TA_Name varchar;
         url_str varchar;
         SendMode INTEGER;
+loc_update_inet_order_status BOOLEAN := False;
 BEGIN 
 -- RAISE NOTICE 'OLD=% NEW=%', OLD.Статус, NEW.Статус  ; 
 
@@ -60,12 +61,14 @@ CASE SendMode -- NEW.Статус
     WHEN 1 THEN
             mstr := mstr || ' частично оплачен.'; -- RAISE NOTICE 'WHEN % mstr=%', NEW.Статус, mstr  ; 
     WHEN 2 THEN
+            loc_update_inet_order_status := True;
             loc_msg_to := 0; -- клиенту
             mstr := 'Поступила оплата по счету ' || order_str ;
             -- RAISE NOTICE 'WHEN % mstr=%', NEW.Статус, mstr  ; 
     WHEN 6 THEN -- Менеджеру: Скомплектован, ожидает оплату
             loc_msg_to := 1; -- менеджеру -- RAISE NOTICE 'WHEN 6 mstr=%', mstr  ; 
             mstr := mstr || ' скомплектован, ожидает доплату.';
+    -- Обработка раз в день по расписанию в crontab
     -- WHEN 7 THEN
            -- loc_msg_to := 1; -- менеджеру
 --           IF delivery = 1 THEN -- если самовывоз
@@ -79,6 +82,7 @@ CASE SendMode -- NEW.Статус
     WHEN 10 THEN 
             loc_msg_to := 0; -- клиенту
             IF delivery = 2 THEN -- отправлен через ТК/Почта/Курьерская служба
+                loc_update_inet_order_status := True;
                 mstr := mstr || ' отправлен: ' ;
                 IF NEW.КодТК IS NOT NULL THEN 
                     SELECT Наименование INTO TA_Name FROM vwТранспортныеКомпании WHERE NEW.КодТК = КодТК ;
@@ -116,10 +120,13 @@ IF length(mstr) > 0 THEN
 END IF;
 
 -- В очередь обновления статуса для Инет заказов с нашего сайта
-IF NEW."ИнтернетЗаказ" > 7000 AND NEW."ИнтернетЗаказ" < 19999 THEN -- грубое отсечение нашего сайта от других площадок
-    -- RAISE NOTICE 'NEW."ИнтернетЗаказ"=%', NEW."ИнтернетЗаказ"  ; 
-    PERFORM "fn_InetOrderNewStatus"(NEW."Статус", NEW."ИнтернетЗаказ");
+/**/
+IF loc_update_inet_order_status THEN
+    IF NEW."ИнтернетЗаказ" > 14000 AND NEW."ИнтернетЗаказ" < 99999 THEN -- грубое отсечение нашего сайта от других площадок
+        PERFORM "fn_InetOrderNewStatus"(NEW."Статус", NEW."ИнтернетЗаказ");
+    END IF;
 END IF;
+/**/
 
 -- log changed fields into bill_status_history
 changes := '';
