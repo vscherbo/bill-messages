@@ -69,6 +69,7 @@ CASE msg.msg_to
       loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
+      loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
       /**
       IF mgr_addr <> 'arutyun@kipspb.ru' THEN
          loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
