@@ -20,7 +20,8 @@ BEGIN
         INSERT INTO "ДозвонНТУ"(
                 "Счет", "Дата", "КтоЗвонил", "КомуПередал", "Примечание", status)
                 -- tips)
-        VALUES (NEW."№ счета", DT, 'робот', NEW.msg_sent_to, loc_msg, NEW.msg_status);
+        -- VALUES (NEW."№ счета", DT, 'робот', NEW.msg_sent_to, loc_msg, NEW.msg_status);
+        VALUES (NEW."№ счета", DT, 'робот', NEW.msg_sent_to, rtrim(rpad(loc_msg, 250)), NEW.msg_status);
             -- ?);
     END IF;
 
