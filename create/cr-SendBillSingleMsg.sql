@@ -42,12 +42,15 @@ IF NOT FOUND THEN
    RETURN; 
 END IF;
 
+/**
 SELECT e.email, e.Имя, f.Название
     FROM Сотрудники e, Счета b, Фирма f
     WHERE msg."№ счета" = b."№ счета" 
         AND b.фирма = f.КлючФирмы
         AND b.Хозяин = e.Менеджер 
     INTO mgr_addr, mgr_name, firm_name ;
+**/
+SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name ;
 
 msg_post := msg_post_common
         || mgr_name
