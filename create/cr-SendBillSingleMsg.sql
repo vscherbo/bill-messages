@@ -21,13 +21,18 @@ $BODY$DECLARE
     pwd varchar := 'Never-adm1n';
 
     loc_msg_problem varchar;
-    loc_msg_status INTEGER;
+    loc_msg_status INTEGER := 0;
 
     loc_order_no VARCHAR;
     loc_subj VARCHAR;
     str_docs varchar;
     loc_bcc VARCHAR;
     str_bill_no VARCHAR;
+  loc_RETURNED_SQLSTATE TEXT;
+  loc_MESSAGE_TEXT TEXT;
+  loc_PG_EXCEPTION_DETAIL TEXT;
+  loc_PG_EXCEPTION_HINT TEXT;
+  loc_PG_EXCEPTION_CONTEXT TEXT;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -100,11 +105,26 @@ ELSE
     IF msg.msg_type IN (1,5) THEN
        loc_subj := 'Изменение статуса счёта № '|| str_bill_no;
     ELSIF msg.msg_type IN (2,3,4) THEN
-       SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
-       loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
-       -- создать документы
-       str_docs := fn_create_attachment(msg."№ счета", msg.msg_type);
-       RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
+        SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
+        loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
+        -- создать документы
+        BEGIN
+           str_docs := fn_create_attachment(msg."№ счета", msg.msg_type);
+        EXCEPTION WHEN OTHERS THEN
+            str_docs := '';
+            GET STACKED DIAGNOSTICS
+                loc_RETURNED_SQLSTATE = RETURNED_SQLSTATE,
+                loc_MESSAGE_TEXT = MESSAGE_TEXT,
+                loc_PG_EXCEPTION_DETAIL = PG_EXCEPTION_DETAIL,
+                loc_PG_EXCEPTION_HINT = PG_EXCEPTION_HINT,
+                loc_PG_EXCEPTION_CONTEXT = PG_EXCEPTION_CONTEXT ;
+            loc_msg_problem = format('RETURNED_SQLSTATE=%s, MESSAGE_TEXT=%s, PG_EXCEPTION_DETAIL=%s, PG_EXCEPTION_HINT=%s, PG_EXCEPTION_CONTEXT=%s', loc_RETURNED_SQLSTATE, loc_MESSAGE_TEXT, loc_PG_EXCEPTION_DETAIL, loc_PG_EXCEPTION_HINT, loc_PG_EXCEPTION_CONTEXT);
+            loc_msg_status := 995;
+            UPDATE bx_order SET billcreated = -3 WHERE "Счет" = msg."№ счета";
+            RAISE NOTICE 'ОШИБКА при создании документов автосчёта=[%] exception=[%]', msg."№ счета", loc_msg_problem;
+        END;
+
+        RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
        SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
        loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
@@ -114,13 +134,15 @@ ELSE
 
     -- RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     /**/
-    PERFORM sendmsg(a_msg_id,
-                    sender::TEXT, pwd::TEXT, mgr_addr::TEXT, to_addr::TEXT, 
-                    full_msg::TEXT, 
-                    loc_subj::TEXT, 
-                    loc_bcc::TEXT, 
-                    str_docs::TEXT );
-    loc_msg_status := 0;
+    
+    IF 0 = loc_msg_status THEN
+        PERFORM sendmsg(a_msg_id,
+                        sender::TEXT, pwd::TEXT, mgr_addr::TEXT, to_addr::TEXT, 
+                        full_msg::TEXT, 
+                        loc_subj::TEXT, 
+                        loc_bcc::TEXT, 
+                        str_docs::TEXT );
+    END IF;
     /**/
 END IF; -- to_addr
 
