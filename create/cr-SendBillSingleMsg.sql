@@ -102,10 +102,10 @@ IF to_addr IS NULL THEN
     END IF;
 ELSE
     str_bill_no := to_char(msg."№ счета", 'FM9999-9999');
+    SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
     IF msg.msg_type IN (1,5) THEN
        loc_subj := 'Изменение статуса счёта № '|| str_bill_no;
     ELSIF msg.msg_type IN (2,3,4) THEN
-        SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
         loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
         -- создать документы
         BEGIN
@@ -126,10 +126,12 @@ ELSE
 
         RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
-       SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
        loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
+    ELSIF 11 = msg.msg_type THEN -- истекает срок оплаты счёта
+        loc_subj := 'Истекает срок оплаты счёта '|| str_bill_no;
     ELSE
-       RAISE 'Недопустимый тип msg_type=% в сообщении msg_id=%', msg.msg_type, msg.id;
+       loc_msg_status := 994;
+       RAISE NOTICE 'Недопустимый тип msg_type=% в сообщении msg_id=%', msg.msg_type, msg.id;
     END IF;
 
     -- RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
@@ -153,7 +155,7 @@ UPDATE "СчетОчередьСообщений" SET
               , msg_sent_to = to_addr
 WHERE id = msg.id;
 IF NOT FOUND THEN
-   RAISE NOTICE 'sendbillsinglemsg:: NOT FOUND msg.id=% for to_addr=%', msg.id, to_addr;
+   RAISE NOTICE 'sendbillsinglemsg:: NOT FOUND after UPDATE msg.id=% for to_addr=%', msg.id, to_addr;
 ELSE
    RAISE NOTICE 'sendbillsinglemsg:: UPDATED msg.id=% for to_addr=% loc_msg_status=%', msg.id, to_addr, loc_msg_status;
 END IF;      
