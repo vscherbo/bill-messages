@@ -67,10 +67,18 @@ msg_post := msg_post_common
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
-      to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес);
       loc_bill_owner := msg."№ счета" / 1000000;
-      IF loc_bill_owner <> 41 THEN -- а для Хозяина 41, отправляем клиенту
-          /** DEBUG only **/
+      IF 41 = loc_bill_owner THEN -- для Хозяина 41, отправляем клиенту
+          to_addr := msg.ЕАдрес;
+      ELSIF is_tester(msg.КодРаботника) THEN
+          to_addr := msg.ЕАдрес;
+      ELSE -- не 41, значит дилерский. И не тестер. Подменяем в получателе клиента на менеджера
+          to_addr := mgr_addr;
+      END IF; -- <> 41
+
+      /** DEBUG only **
+      ELSE
+          to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес); -- дилер-тестер
           -- если to_addr содержит arutyun, т.е. не Дилер-тестер
           -- и при этом mgr_addr не arutyun, т.е. счёт дилерский и Хозяин не arutyun
           -- меняем адресата: вместо arutyun - менеджер-хозяин
@@ -78,8 +86,9 @@ CASE msg.msg_to
           THEN
             to_addr := mgr_addr;
           END IF;
-          /** DEBUG only **/
       END IF; -- <> 41
+      ** DEBUG only **/
+
       loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
