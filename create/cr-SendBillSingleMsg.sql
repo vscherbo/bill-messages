@@ -33,6 +33,7 @@ $BODY$DECLARE
   loc_PG_EXCEPTION_DETAIL TEXT;
   loc_PG_EXCEPTION_HINT TEXT;
   loc_PG_EXCEPTION_CONTEXT TEXT;
+loc_bill_owner INTEGER;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -67,22 +68,22 @@ msg_post := msg_post_common
 CASE msg.msg_to
    WHEN 0 THEN -- to client
       to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес);
-      -- если to_addr содержит arutyun, т.е. не Дилер-тестер
-      -- и при этом mgr_addr не arutyun, т.е. счёт дилерский и Хозяин не arutyun
-      -- меняем адресата: вместо arutyun - менеджер-хозяин
-      IF mgr_addr <> 'arutyun@kipspb.ru' AND position('arutyun@kipspb.ru' in to_addr) > 0
-      THEN
-        to_addr := mgr_addr;
-      END IF;
+      loc_bill_owner := msg."№ счета" / 1000000;
+      IF loc_bill_owner <> 41 THEN -- а для Хозяина 41, отправляем клиенту
+          /** DEBUG only **/
+          -- если to_addr содержит arutyun, т.е. не Дилер-тестер
+          -- и при этом mgr_addr не arutyun, т.е. счёт дилерский и Хозяин не arutyun
+          -- меняем адресата: вместо arutyun - менеджер-хозяин
+          IF mgr_addr <> 'arutyun@kipspb.ru' AND position('arutyun@kipspb.ru' in to_addr) > 0
+          THEN
+            to_addr := mgr_addr;
+          END IF;
+          /** DEBUG only **/
+      END IF; -- <> 41
       loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager
       to_addr := mgr_addr;
-      loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
-      /**
-      IF mgr_addr <> 'arutyun@kipspb.ru' THEN
-         loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
-      END IF;
-      **/
+      -- loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
       msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
    WHEN 2 THEN -- to file
       to_addr := msg.ЕАдрес;
