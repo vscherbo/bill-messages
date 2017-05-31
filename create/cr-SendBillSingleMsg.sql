@@ -34,6 +34,7 @@ $BODY$DECLARE
   loc_PG_EXCEPTION_HINT TEXT;
   loc_PG_EXCEPTION_CONTEXT TEXT;
 loc_bill_owner INTEGER;
+loc_ext_phone VARCHAR;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -56,12 +57,12 @@ SELECT e.email, e.Имя, f.Название
         AND b.Хозяин = e.Менеджер 
     INTO mgr_addr, mgr_name, firm_name ;
 **/
-SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name ;
+SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone;
 
 msg_post := msg_post_common
         || mgr_name
         || E', e-mail: ' || mgr_addr || E',\r\n'
-        || E'телефон:  (812)327-327-4\r\n'
+        || E'телефон:  (812)327-327-4, доб. '|| loc_ext_phone || E'\r\n'
         || E'С уважением,\r\n' 
         || firm_name;
 
@@ -75,19 +76,6 @@ CASE msg.msg_to
       ELSE -- не 41, значит дилерский. И не тестер. Подменяем в получателе клиента на менеджера
           to_addr := mgr_addr;
       END IF; -- <> 41
-
-      /** DEBUG only **
-      ELSE
-          to_addr := get_bill_send_to(msg.КодРаботника,  msg.ЕАдрес); -- дилер-тестер
-          -- если to_addr содержит arutyun, т.е. не Дилер-тестер
-          -- и при этом mgr_addr не arutyun, т.е. счёт дилерский и Хозяин не arutyun
-          -- меняем адресата: вместо arutyun - менеджер-хозяин
-          IF mgr_addr <> 'arutyun@kipspb.ru' AND position('arutyun@kipspb.ru' in to_addr) > 0
-          THEN
-            to_addr := mgr_addr;
-          END IF;
-      END IF; -- <> 41
-      ** DEBUG only **/
 
       loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager

@@ -34,7 +34,7 @@ $BODY$DECLARE
     loc_PG_EXCEPTION_DETAIL varchar;
     loc_PG_EXCEPTION_HINT varchar;
     loc_PG_EXCEPTION_CONTEXT varchar;
-    
+    loc_ext_phone VARCHAR; 
 BEGIN
     smtp_srv := smtphost();
     IF pg_production() THEN
@@ -61,12 +61,12 @@ BEGIN
                 AND b.Хозяин = e.Менеджер 
               INTO mgr_addr, mgr_name, firm_name ;
       **/
-        SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name ;
-    
+        SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone;
+
         msg_post := msg_post_common
                 || mgr_name
                 || E', e-mail: ' || mgr_addr || E',\r\n'
-                || E'телефон:  (812)327-327-4\r\n'
+                || E'телефон:  (812)327-327-4, доб. '|| loc_ext_phone || E'\r\n'
                 || E'С уважением,\r\n' 
                 || firm_name;
 
