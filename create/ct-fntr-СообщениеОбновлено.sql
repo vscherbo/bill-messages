@@ -28,12 +28,12 @@ BEGIN
     -- UPDATE "Счета" SET "Уведомили" = DT WHERE "№ счета" = NEW."№ счета";
 
     /** DEBUG only **/
-    IF NEW.msg_type IN (3,4) THEN -- счёт-факс, квитанция с бланком
+    IF NEW.msg_type IN (2,3,4) THEN -- бланк заказа, бланк с квитанцией, счёт-факс
         RAISE NOTICE '№ счета=%, msg_type=%, msg_status=%, NEW.msg_sent_to=%', NEW."№ счета", NEW.msg_type, NEW.msg_status, NEW.msg_sent_to;
     END IF;
     /**/
 
-    IF (NEW.msg_type IN (3,4)) AND -- счёт-факс, квитанция с бланком
+    IF (NEW.msg_type IN (2,3,4)) AND -- бланк заказа, бланк с квитанцией, счёт-факс
        (0 = NEW.msg_status) AND -- email sent
        (position('@kipspb.ru' IN NEW.msg_sent_to) = 0) -- получатель внешний, т.е. не тестовое письмо
     THEN
