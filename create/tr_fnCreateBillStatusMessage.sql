@@ -63,7 +63,7 @@ CASE SendMode -- NEW.Статус
     WHEN 2 THEN
             loc_update_inet_order_status := True;
             loc_msg_to := 0; -- клиенту
-            mstr := 'Поступила оплата по счету ' || order_str ;
+            mstr := 'Поступила оплата по счету ' || order_str || E'.\nВаш заказ комплектуется, срок готовности указан в выставленном счёте.';
             -- RAISE NOTICE 'WHEN % mstr=%', NEW.Статус, mstr  ; 
     WHEN 6 THEN -- Менеджеру: Скомплектован, ожидает оплату
             loc_msg_to := 1; -- менеджеру -- RAISE NOTICE 'WHEN 6 mstr=%', mstr  ; 
