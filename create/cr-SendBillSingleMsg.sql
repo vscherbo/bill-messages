@@ -107,7 +107,7 @@ ELSE
         loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
         -- создать документы
         BEGIN
-           str_docs := fn_create_attachment(msg."№ счета", msg.msg_type);
+            str_docs := fn_create_attachment(msg."№ счета", msg.msg_type);
         EXCEPTION WHEN OTHERS THEN
             str_docs := '';
             GET STACKED DIAGNOSTICS
