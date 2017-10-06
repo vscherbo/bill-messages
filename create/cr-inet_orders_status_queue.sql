@@ -5,7 +5,7 @@
 CREATE TABLE inet_orders_status_queue
 (
   id serial NOT NULL,
-  ios_timestamp timestamp without time zone DEFAULT now(), -- Дата-время помещения в очередь
+  ios_timestamp timestamp without time zone DEFAULT clock_timestamp(), -- Дата-время помещения в очередь
   io_id integer, -- Номер (id) интернет-заказа
   io_status character(1), -- Новый статус
   io_update_result integer, -- Результат обновления на сайте: 0-успешно

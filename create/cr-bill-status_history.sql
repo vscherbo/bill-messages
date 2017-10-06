@@ -5,7 +5,7 @@
 CREATE TABLE bill_status_history
 (
   id serial NOT NULL,
-  changed timestamp without time zone DEFAULT now(),
+  changed timestamp without time zone DEFAULT clock_timestamp(),
   changes character varying,
   bill_no integer,
   msg_id integer,

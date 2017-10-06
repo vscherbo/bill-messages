@@ -10,7 +10,7 @@ DECLARE
   loc_msg VARCHAR;
 BEGIN
     --RAISE NOTICE 'IN trigger function fntr_Сообщение_в_ДозвонНТУ';
-    DT := now();
+    DT := clock_timestamp();
     IF NEW.msg_problem IS NULL OR length(NEW.msg_problem) = 0 THEN 
         loc_msg := NEW.msg;
     ELSE

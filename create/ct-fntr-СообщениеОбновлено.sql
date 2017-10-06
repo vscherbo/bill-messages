@@ -7,7 +7,7 @@ DECLARE
   loc_msg VARCHAR;
   loc_inet_order NUMERIC; 
 BEGIN
-    DT := now();
+    DT := clock_timestamp();
     IF NEW.msg_problem IS NULL OR length(NEW.msg_problem) = 0 THEN 
         loc_msg := NEW.msg;
     ELSE

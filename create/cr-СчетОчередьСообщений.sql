@@ -6,7 +6,7 @@ CREATE TABLE "СчетОчередьСообщений"
 (
   id serial NOT NULL,
   "№ счета" integer NOT NULL,
-  msg_timestamp timestamp without time zone NOT NULL DEFAULT now(),
+  msg_timestamp timestamp without time zone NOT NULL DEFAULT clock_timestamp(),
   msg_priority integer NOT NULL DEFAULT 0,
   msg_status integer NOT NULL DEFAULT 1, -- 0-sent, 1-new, 2-периодический, ...
   msg character varying,
