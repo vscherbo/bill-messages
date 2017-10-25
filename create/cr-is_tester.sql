@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION is_tester(a_emp_code INTEGER) RETURNS BOOLEAN AS
 $BODY$DECLARE
 loc_result BOOLEAN;
 BEGIN
-
+/***
 loc_result := a_emp_code IN (SELECT "КодРаботника" FROM emp_company
 WHERE "Код" IN
 (250531,210282,210243
@@ -47,6 +47,7 @@ WHERE "Код" IN
 ,245506 -- ТК Автоматизация ООО, Алексеева
 ,210225 -- НПП ОВЕН-УРАЛ ООО, Антипин
 ,258185 -- ООО "Дельта-КИП", Алексеева
+,254827 -- ООО ПТК «ЭВС», Рубцов
 )
 );  -- Работник д.б. связан с Кодом дилера-тестера в emp_company
 
@@ -55,6 +56,8 @@ IF loc_result THEN
 END IF;
 
 RETURN loc_result;
+***/
+RETURN True;
             
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
