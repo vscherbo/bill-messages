@@ -6,13 +6,14 @@ CREATE OR REPLACE FUNCTION fn_check_ready4delivery()
   RETURNS void AS
 $BODY$DECLARE
     b RECORD;
-    mstr varchar(255);
+    mstr varchar; -- (255);
     loc_msg_to integer;
     cnt INTEGER;
     do_send BOOLEAN := FALSE;
     _now TIMESTAMP WITHOUT TIME ZONE;
     loc_last_interval INTERVAL;
     loc_last_reminder_ts TIMESTAMP WITHOUT TIME ZONE;
+    loc_firm_name TEXT;
     loc_dbg_str TEXT;
 BEGIN
 FOR b IN SELECT "№ счета", "Дата счета", предок, Сумма
@@ -40,8 +41,21 @@ LOOP
     END IF;
     mstr := mstr || E' от ' || to_char(b."Дата счета", 'YYYY-MM-DD');
 
-    mstr := mstr || E' скомплектован и полностью оплачен. Готов к самовывозу.\r\n';
-    loc_msg_to := 0; -- клиенту, 2 - в файл, 1 - менеджеру
+    SELECT f."Название" INTO loc_firm_name FROM "Счета" b1, "Фирма" f WHERE  b1."№ счета" = b."№ счета" AND b1."фирма" = f."КлючФирмы";
+    -- mstr := mstr || E' скомплектован и полностью оплачен. Готов к самовывозу.\r\n';
+    mstr := format(E'%s скомплектован и полностью оплачен.\n 
+Товар готов к самовывозу и находится на складе %s по адресу:
+поселок Мурино (м. Девяткино), улица Ясная, дом 11.
+Схема проезда по ссылке: https://www.kipspb.ru/upload/iblock/226/devyatkino_map.jpg\n
+Товар можно приехать и получить без дополнительного звонка.\n
+Для юридических лиц требуется печать или доверенность.\n
+Время работы офиса и склада:
+понедельник - пятница, с 9:00 до 18:00 без перерыва
+Тел.: 8-812-327-327-4\n
+Убедительная просьба забрать товар в течение 5 дней.
+'
+    , mstr, loc_firm_name);
+    loc_msg_to := 0; -- 0 - клиенту, 2 - в файл, 1 - менеджеру
 
     cnt := r4d_sent_count(b."№ счета");
     _now := now(); -- DEBUG +'3 days'::INTERVAL;
