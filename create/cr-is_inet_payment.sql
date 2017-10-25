@@ -2,7 +2,9 @@ CREATE OR REPLACE FUNCTION is_inet_payment(bill_no integer)
   RETURNS boolean AS
 $BODY$
 BEGIN
-RETURN EXISTS ( SELECT 1 FROM inetpayments
+RETURN EXISTS (
+        -- SELECT 1 FROM inetpayments
+        SELECT 1 FROM yampayments
                          WHERE order_id = (SELECT "ИнтернетЗаказ" FROM "Счета" WHERE "№ счета" = $1)
               );
 END;
