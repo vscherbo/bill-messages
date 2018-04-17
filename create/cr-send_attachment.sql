@@ -74,7 +74,7 @@ msg.attach(part2)
 # PDF attachment
 if attachment_files is not None:
     msg_body = msg
-    msg = MIMEMultipart("")
+    msg = MIMEMultipart("mixed")
     msg.attach(msg_body)
     for fname in attachment_files:
         if not os.path.exists(fname):
