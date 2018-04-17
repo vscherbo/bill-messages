@@ -4,7 +4,7 @@ $BODY$
 BEGIN
 RETURN EXISTS (
         -- SELECT 1 FROM inetpayments
-        SELECT 1 FROM yampayments
+        SELECT 1 FROM yampayment
                          WHERE order_id = (SELECT "ИнтернетЗаказ" FROM "Счета" WHERE "№ счета" = $1)
               );
 END;
