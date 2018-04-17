@@ -12,6 +12,7 @@ $BODY$DECLARE
     msg_pre VARCHAR = E'Это письмо сформировано автоматически, отвечать на него не нужно.\r\n\r\n' ;
     msg_post_common VARCHAR = E'\r\n\r\nНа все Ваши вопросы Вам ответит Ваш персональный менеджер:\r\n';
     msg_post varchar ;
+    msg_post_mobile varchar ;
     to_addr varchar ;
     mgr_addr varchar ;
     mgr_name varchar ;
@@ -35,6 +36,7 @@ $BODY$DECLARE
   loc_PG_EXCEPTION_CONTEXT TEXT;
 loc_bill_owner INTEGER;
 loc_ext_phone VARCHAR;
+loc_mob_phone VARCHAR;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -49,22 +51,19 @@ IF NOT FOUND THEN
    RETURN; 
 END IF;
 
-/**
-SELECT e.email, e.Имя, f.Название
-    FROM Сотрудники e, Счета b, Фирма f
-    WHERE msg."№ счета" = b."№ счета" 
-        AND b.фирма = f.КлючФирмы
-        AND b.Хозяин = e.Менеджер 
-    INTO mgr_addr, mgr_name, firm_name ;
-**/
-SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone;
+/***
+SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
+
+msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
 
 msg_post := msg_post_common
         || mgr_name
         || E', e-mail: ' || mgr_addr || E',\r\n'
         || E'телефон:  (812)327-327-4, доб. '|| loc_ext_phone || E'\r\n'
+        || COALESCE(msg_post_mobile, E'')
         || E'С уважением,\r\n' 
         || firm_name;
+***/
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
@@ -88,7 +87,9 @@ CASE msg.msg_to
    ELSE
       to_addr := 'it@kipspb.ru';
       full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
+      msg_post := E'';
 END CASE;
+msg_post := COALESCE(msg_post, mgr_signature(msg."№ счета"));
 full_msg := msg_pre || msg.msg || msg_post;
 
 IF to_addr IS NULL THEN
