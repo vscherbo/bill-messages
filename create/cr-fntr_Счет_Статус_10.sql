@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION "fntr_Счет_Статус_10"()
   RETURNS trigger AS
 $BODY$BEGIN
   -- NEW."Статус" := 10;
-  UPDATE "Счета" SET "Статус" = 10 WHERE "№ счета" = NEW."№ счета";
+  UPDATE "Счета" SET "Статус" = 10, "Отгружен" = 't' WHERE "№ счета" = NEW."№ счета";
   -- RAISE NOTICE 'Status10: OLD=% NEW=%', OLD.Статус, NEW.Статус ;
   RETURN NEW;
 END;$BODY$
