@@ -21,7 +21,7 @@ BEGIN
             "Счет", "Дата", "КтоЗвонил", "КомуПередал", "Примечание", status)
             -- tips)
     VALUES (NEW."№ счета", DT, 'робот', (SELECT email_to FROM send_email_result e WHERE e.qid=NEW.msg_qid LIMIT 1), loc_msg, NEW.msg_status);
-            -- ?);
+            -- NEW.msg_id);
     -- UPDATE "Счета" SET "Уведомили" = DT WHERE "№ счета" = NEW."№ счета";
     RETURN NEW;
 END;$BODY$
