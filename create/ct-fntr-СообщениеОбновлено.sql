@@ -33,9 +33,11 @@ BEGIN
     END IF;
     /**/
 
-    IF (NEW.msg_type IN (2,3,4)) AND -- бланк заказа, бланк с квитанцией, счёт-факс
-       (0 = NEW.msg_status) AND -- email sent
-       (position('@kipspb.ru' IN NEW.msg_sent_to) = 0) -- получатель внешний, т.е. не тестовое письмо
+    IF (NEW.msg_type IN (2,3,4)) -- бланк заказа, бланк с квитанцией, счёт-факс
+       AND (0 = NEW.msg_status) -- email sent
+       /** с 2018-12-26 не отсекаем
+       AND (position('@kipspb.ru' IN NEW.msg_sent_to) = 0) -- получатель внешний, т.е. не тестовое письмо
+       **/
     THEN
         SELECT "ИнтернетЗаказ" INTO loc_inet_order FROM "Счета" WHERE "№ счета" = NEW."№ счета";
         IF FOUND THEN
