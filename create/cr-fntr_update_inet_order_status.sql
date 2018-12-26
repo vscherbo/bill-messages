@@ -19,6 +19,9 @@ IF cmd IS NULL
 THEN
     RAISE NOTICE 'update_inet_order_status cmd IS NULL';
 ELSE
+    if NOT NEW.safe_mode then
+        cmd := cmd || ' force';
+    end if;
     res_exec := public.exec_paramiko(loc_site, 22, 'uploader'::VARCHAR, cmd);
 
     IF res_exec.err_str <> ''
