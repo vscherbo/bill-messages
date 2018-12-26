@@ -37,5 +37,3 @@ RETURN loc_msg_post;
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION sendbillsinglemsg(integer)
-  OWNER TO arc_energo;
