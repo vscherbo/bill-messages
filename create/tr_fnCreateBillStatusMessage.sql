@@ -1,10 +1,7 @@
--- Function: "fnCreateBillStatusMessage"()
-
--- DROP FUNCTION "fnCreateBillStatusMessage"();
-
-CREATE OR REPLACE FUNCTION "fnCreateBillStatusMessage"()
-  RETURNS trigger AS
-$BODY$DECLARE 
+CREATE OR REPLACE FUNCTION arc_energo."fnCreateBillStatusMessage"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$DECLARE 
         mstr varchar(255);
         order_str varchar(255);
         changes varchar;
@@ -18,16 +15,25 @@ $BODY$DECLARE
         url_str varchar;
         SendMode INTEGER;
 loc_update_inet_order_status BOOLEAN := False;
+loc_dt timestamp;
 BEGIN 
 -- RAISE NOTICE 'OLD=% NEW=%', OLD.Статус, NEW.Статус  ; 
 
 CASE NEW.Отгрузка
     WHEN 'Самовывоз' THEN
-         delivery := 1 ;
+        delivery := 1 ;
     WHEN 'Курьер заказчика' THEN
-         delivery := 1 ;
+        delivery := 1 ;
     WHEN 'Отправка' THEN
-         delivery := 2 ;
+        delivery := 2 ;
+        if old."Интернет" = true AND old."Статус" Is Null AND old."Код" <> 223719 then
+        BEGIN
+            EXECUTE shp.check_autobill_onloc(NEW."№ счета");
+            EXCEPTION
+            WHEN OTHERS THEN
+                RAISE NOTICE 'autobill loc no insert: %', NEW."№ счета";
+        END;
+        end if;
     WHEN 'Отправка курьерской сл.' THEN
          delivery := 2 ;
     WHEN 'Почтой' THEN
@@ -36,18 +42,23 @@ CASE NEW.Отгрузка
 --         RAISE NOTICE 'Wrong delivery=%', NEW.Отгрузка ; 
 END CASE;
 
+RAISE NOTICE 'bill_no=%, delivery=%', NEW."№ счета", delivery;
+
 
 mstr := 'Заказ ';
 IF NEW.предок = NEW."№ счета" THEN
    order_str := to_char(NEW."№ счета", 'FM9999-9999');
+   loc_dt = NEW."Дата счета";
 ELSE 
    order_str := to_char(NEW.предок, 'FM9999-9999') || '/' || to_char(NEW."№ счета", 'FM9999-9999');
+   SELECT "Дата счета" into loc_dt FROM "Счета" WHERE "№ счета" = NEW.предок;
 END IF;
-order_str := order_str || ' от ' || to_char(NEW."Дата счета", 'YYYY-MM-DD');
+-- order_str := order_str || ' от ' || to_char(NEW."Дата счета", 'YYYY-MM-DD');
+order_str := order_str || ' от ' || to_char(loc_dt, 'YYYY-MM-DD');
 mstr := mstr || order_str;
 
 IF (NEW.Статус = 2) AND (NEW."Код" = 223719) THEN -- оплачен физ. лицом
-   IF is_bank_payment(NEW."№ счета") AND NOT is_inet_payment(NEW."№ счета") THEN  -- Банк и не Платрон
+   IF is_bank_payment(NEW."№ счета") AND NOT is_inet_payment(NEW."№ счета") THEN  -- Банк и не Я.Касса
       SendMode := NEW.Статус; -- посылать всем
    ELSE
       SendMode := -1; -- см. ниже CASE .. ELSE mstr := ''; НЕ посылать
@@ -121,6 +132,7 @@ END IF;
 
 -- В очередь обновления статуса для Инет заказов с нашего сайта
 /**/
+RAISE NOTICE 'NEW.Статус=%, NEW.ИнтернетЗаказ=%, loc_update_inet_order_status=%', NEW."Статус", NEW."ИнтернетЗаказ", loc_update_inet_order_status ;  
 IF loc_update_inet_order_status THEN
     IF NEW."ИнтернетЗаказ" > 14000 AND NEW."ИнтернетЗаказ" < 99999 THEN -- грубое отсечение нашего сайта от других площадок
         PERFORM "fn_InetOrderNewStatus"(NEW."Статус", NEW."ИнтернетЗаказ");
@@ -145,8 +157,5 @@ END LOOP;
 INSERT INTO bill_status_history(bill_no, changes, msg_id)  VALUES(NEW."№ счета", changes, message_id);
 
 RETURN NEW;
-END;$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION "fnCreateBillStatusMessage"()
-  OWNER TO arc_energo;
+END;$function$
+;
