@@ -37,6 +37,7 @@ $BODY$DECLARE
 loc_bill_owner INTEGER;
 loc_ext_phone VARCHAR;
 loc_mob_phone VARCHAR;
+loc_subj_prefix VARCHAR;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -126,7 +127,13 @@ ELSE
 
         RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
-       loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
+       -- loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
+        IF msg.msg_subj IS NULL THEN
+            loc_subj_prefix := 'Создан автосчёт';
+        ELSE
+            loc_subj_prefix := 'Создана ЗАГОТОВКА автосчёта';
+        END IF;
+        loc_subj := format('%s %s по заказу %s на сайте kipspb.ru'), loc_subj_prefix, str_bill_no, COALESCE(loc_order_no, '');
     ELSIF 11 = msg.msg_type THEN -- истекает срок оплаты счёта
         loc_subj := 'Истекает срок оплаты счёта '|| str_bill_no;
     ELSE
