@@ -1,10 +1,7 @@
--- Function: sendbillsinglemsg(integer)
-
--- DROP FUNCTION sendbillsinglemsg(integer);
-
-CREATE OR REPLACE FUNCTION sendbillsinglemsg(a_msg_id integer)
-  RETURNS void AS
-$BODY$DECLARE
+CREATE OR REPLACE FUNCTION arc_energo.sendbillsinglemsg(a_msg_id integer)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$DECLARE
     msg RECORD;
     send_status integer;
     rcpt_refused varchar;
@@ -37,7 +34,6 @@ $BODY$DECLARE
 loc_bill_owner INTEGER;
 loc_ext_phone VARCHAR;
 loc_mob_phone VARCHAR;
-loc_subj_prefix VARCHAR;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -52,7 +48,6 @@ IF NOT FOUND THEN
    RETURN; 
 END IF;
 
-/***
 SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
 
 msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
@@ -64,7 +59,6 @@ msg_post := msg_post_common
         || COALESCE(msg_post_mobile, E'')
         || E'С уважением,\r\n' 
         || firm_name;
-***/
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
@@ -88,9 +82,7 @@ CASE msg.msg_to
    ELSE
       to_addr := 'it@kipspb.ru';
       full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
-      msg_post := E'';
 END CASE;
-msg_post := COALESCE(msg_post, mgr_signature(msg."№ счета"));
 full_msg := msg_pre || msg.msg || msg_post;
 
 IF to_addr IS NULL THEN
@@ -127,13 +119,7 @@ ELSE
 
         RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
-       -- loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
-        IF msg.msg_subj IS NULL THEN
-            loc_subj_prefix := 'Создан автосчёт';
-        ELSE
-            loc_subj_prefix := 'Создана ЗАГОТОВКА автосчёта';
-        END IF;
-        loc_subj := format('%s %s по заказу %s на сайте kipspb.ru'), loc_subj_prefix, str_bill_no, COALESCE(loc_order_no, '');
+       loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
     ELSIF 11 = msg.msg_type THEN -- истекает срок оплаты счёта
         loc_subj := 'Истекает срок оплаты счёта '|| str_bill_no;
     ELSE
@@ -167,8 +153,5 @@ ELSE
    RAISE NOTICE 'sendbillsinglemsg:: UPDATED msg.id=% for to_addr=% loc_msg_status=%', msg.id, to_addr, loc_msg_status;
 END IF;      
       
-END;$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION sendbillsinglemsg(integer)
-  OWNER TO arc_energo;
+END;$function$
+;
