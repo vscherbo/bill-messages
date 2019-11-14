@@ -18,6 +18,9 @@ loc_update_inet_order_status BOOLEAN := False;
 loc_dt timestamp;
 BEGIN 
 -- RAISE NOTICE 'OLD=% NEW=%', OLD.Статус, NEW.Статус  ; 
+PERFORM FROM arc_energo.bills2skip WHERE bill=NEW."№ счета" AND bill_flg<0;
+if FOUND then RETURN NEW; end if;
+
 
 CASE NEW.Отгрузка
     WHEN 'Самовывоз' THEN
