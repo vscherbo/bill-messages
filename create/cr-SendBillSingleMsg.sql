@@ -19,7 +19,7 @@ AS $function$DECLARE
     pwd varchar := 'Never-adm1n';
 
     loc_msg_problem varchar;
-    loc_msg_status INTEGER := 0;
+    loc_msg_status INTEGER := 999;
 
     loc_order_no VARCHAR;
     loc_subj VARCHAR;
@@ -130,7 +130,7 @@ ELSE
     -- RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     /**/
     
-    IF 0 = loc_msg_status THEN
+    IF 999 = loc_msg_status THEN
         PERFORM sendmsg(a_msg_id,
                         sender::TEXT, pwd::TEXT, mgr_addr::TEXT, to_addr::TEXT, 
                         full_msg::TEXT, 

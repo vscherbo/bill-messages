@@ -112,7 +112,7 @@ msg['Subject'] = Header(subject, 'UTF-8')
 
 
 
-rc = 0
+rc = 999
 out_msg_qid = ''
 out_rcpt_refused = ''
 rcpt_refused = []
@@ -123,6 +123,7 @@ if port == -1:
     feml.write('=============================================\n')
     feml.close()
 else:
+    smtpObj = None
     try:
         if port == 25:
             smtpObj = smtplib.SMTP(smtp,port)
@@ -186,7 +187,8 @@ else:
       rc = 99
       plpy.notice('Unknown:' + str(e))
     else:
-      smtpObj.quit()
+      if smtpObj:
+          smtpObj.quit()
 
 if len(rcpt_refused) > 0:
   rc = 995

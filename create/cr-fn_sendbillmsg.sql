@@ -1,10 +1,7 @@
--- Function: fn_sendbillmsg()
-
--- DROP FUNCTION fn_sendbillmsg();
-
-CREATE OR REPLACE FUNCTION fn_sendbillmsg()
-  RETURNS integer AS
-$BODY$DECLARE
+CREATE OR REPLACE FUNCTION arc_energo.fn_sendbillmsg()
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$DECLARE
     msg RECORD;
     cnt integer;
     send_status integer;
@@ -21,8 +18,6 @@ $BODY$DECLARE
 
     current_port integer;
     current_srv varchar;
-    smtp_port CONSTANT integer := 25;
-    smtp_srv varchar;
     pwd varchar;
     sender varchar;
 
@@ -38,7 +33,6 @@ $BODY$DECLARE
     loc_ext_phone VARCHAR; 
 loc_mob_phone VARCHAR;
 BEGIN
-    smtp_srv := smtphost();
     IF pg_production() THEN
         pwd := 'Never-adm1n';
         sender := 'no-reply@kipspb.ru';
@@ -55,7 +49,7 @@ BEGIN
                     WHERE q."№ счета" = b."№ счета"
                     AND q.msg_type IN (1,5,11) -- до окончания отладки sendbillmsgparam
     LOOP
-/**
+
 SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
 
 msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
@@ -67,9 +61,9 @@ msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
                 || COALESCE(msg_post_mobile, E'')
                 || E'С уважением,\r\n' 
                 || firm_name;
-**/
-        current_srv := smtp_srv ;
-        current_port := smtp_port ;
+
+        current_srv := smtphost() ;
+        current_port := smtpport() ;
 
         CASE msg.msg_to
            WHEN 0 THEN -- to client
@@ -84,10 +78,8 @@ msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
               current_port := -1 ;
            ELSE
                to_addr := 'it@kipspb.ru';
-               full_msg := E'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
-               msg_post := E'';
+               full_msg := 'Недопустимое значение поля СчетОчередьСообщений.msg_to=' || msg.msg_to ;
         END CASE;
-        msg_post := COALESCE(msg_post, mgr_signature(msg."№ счета"));
         full_msg := msg_pre || msg.msg || msg_post;
         
         loc_msg_problem := NULL;
@@ -136,6 +128,7 @@ msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
                 loc_msg_problem := COALESCE(loc_msg_problem, '') || ' rcpt_refused:' || rcpt_refused;
             END IF;
         END IF;
+        RAISE NOTICE 'to_addr=%, send_status=%, loc_msg_qid=%, rcpt_refused=%', to_addr, send_status, loc_msg_qid, rcpt_refused;
            -- UPDATE
         UPDATE "СчетОчередьСообщений"
         SET 
@@ -150,8 +143,5 @@ msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
         END IF;
     END LOOP; -- FOR queued msg
     RETURN cnt;  
-END;$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION fn_sendbillmsg()
-  OWNER TO arc_energo;
+END;$function$
+;

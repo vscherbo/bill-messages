@@ -1,6 +1,17 @@
 -- DROP FUNCTION public.send_email(text, text, text, text, integer, text, text, text);
 
-CREATE OR REPLACE FUNCTION public.send_email(IN _from text, IN _password text, IN replyto text, IN smtp text, IN port integer, IN receiver text, IN subject text, IN send_message text, OUT rc integer, OUT out_msg_qid text, OUT out_rcpt_refused text) AS
+CREATE OR REPLACE FUNCTION public.send_email(
+    IN _from text,
+    IN _password text,
+    IN replyto text,
+    IN smtp text,
+    IN port integer,
+    IN receiver text,
+    IN subject text,
+    IN send_message text,
+    OUT rc integer,
+    OUT out_msg_qid text,
+    OUT out_rcpt_refused text) AS
 $BODY$
 
 import smtplib
@@ -10,11 +21,14 @@ from StringIO import StringIO
 from email.MIMEText import MIMEText
 from email.MIMEMultipart import MIMEMultipart
 from email.header import Header
+import email.utils
 from datetime import datetime
 import pytz
 import re
 
-re_queued = re.compile('^reply: retcode .* queued as ([0-9A-F]{10,11})$')
+re_queued = re.compile('^reply: retcode .* queued .*as ([-0-9a-zA-Z]+)')
+re_timestamp = re.compile('[0-9]{10}-(.*)')
+
 
 sender = _from
 receivers = receiver.split(",")
@@ -22,6 +36,7 @@ receivers = receiver.split(",")
 ### 
 msg = MIMEMultipart("alternative")
 ###msg = MIMEMultipart()
+msg.add_header('Message-ID', email.utils.make_msgid())
 msg.add_header('Content-Transfer-Encoding', '8bit')
 msg.add_header('Reply-To', replyto)
 msg.add_header('Errors-To', 'it@kipspb.ru')
@@ -68,7 +83,7 @@ part2 = MIMEText(msg_html, 'html', "UTF-8")
 msg.attach(part1)
 msg.attach(part2)
 
-rc = 0
+rc = 999
 out_msg_qid = ''
 out_rcpt_refused = ''
 rcpt_refused = []
@@ -79,10 +94,14 @@ if port == -1:
     feml.write('=============================================\n')
     feml.close()
 else:
+    smtpObj = None
     try:
-        smtpObj = smtplib.SMTP(smtp,port)
-        if smtp != 'mail.arc.world':
-            smtpObj.starttls()
+        if port == 25:
+            smtpObj = smtplib.SMTP(smtp,port)
+            if smtp != 'mail.arc.world':
+                smtpObj.starttls()
+        else:
+            smtpObj = smtplib.SMTP_SSL('{0}:{1}'.format(smtp,port))
             smtpObj.login(_from, _password)
 
         save_smtplib_stderr = smtplib.stderr
@@ -99,9 +118,22 @@ else:
         #plpy.notice(result_string)
         lines = result_string.splitlines()
         for line in lines:
+            #plpy.notice('line='+line)
             qid = re_queued.match(line)
             if qid:
-                out_msg_qid = qid.group(1)
+                msg_qid = qid.group(1)
+                plpy.notice('===<<<<<<=== msg_qid=' + msg_qid)
+
+                ts_match = re_timestamp.match(msg_qid)
+                if ts_match:
+                    out_msg_qid = ts_match.group(1)
+                else:
+                    out_msg_qid = msg_qid
+                plpy.notice('===>>>>>>>=== out_msg_qid=' + out_msg_qid)
+
+            #qid = re_queued.match(line)
+            #if qid:
+            #    out_msg_qid = qid.group(1)
 
     except smtplib.SMTPServerDisconnected:
       rc = 11
@@ -121,10 +153,13 @@ else:
       rc = 14
     except smtplib.SMTPHeloError:
       rc = 16
-    #except smtplib.SMTPException:
-    #  rc = 18
-    finally:
-      smtpObj.quit()
+    except Exception, e:
+      rc = 99
+      plpy.notice('Unknown:' + str(e))
+    else:
+      if smtpObj:
+          smtpObj.quit()
+
 
 #if len(rcpt_refused) > 0:
 #  rc = 995
