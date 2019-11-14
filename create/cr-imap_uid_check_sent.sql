@@ -53,7 +53,7 @@ for msg_uid in msg_uid_list:
                         # try int()
                         msg_status = int(part['status'].replace('.', ''))
                     else:
-                        msg_status = 994
+                        msg_status = 990
                     plpy.notice('msg_status=%s' % msg_status)
                 if part_type == 'message/rfc822':
                     for subpart in part.walk():
