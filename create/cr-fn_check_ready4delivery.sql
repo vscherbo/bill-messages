@@ -2,7 +2,7 @@
 
 -- DROP FUNCTION fn_check_ready4delivery();
 
-CREATE OR REPLACE FUNCTION fn_check_ready4delivery()
+CREATE OR REPLACE FUNCTION fn_check_ready4delivery(arg_real_send bool DEFAULT FALSE)
   RETURNS void AS
 $BODY$DECLARE
     b RECORD;
@@ -15,6 +15,7 @@ $BODY$DECLARE
     loc_last_reminder_ts TIMESTAMP WITHOUT TIME ZONE;
     loc_firm_name TEXT;
     loc_dbg_str TEXT;
+    loc_msg_status integer := -99;  -- do not send
 BEGIN
 FOR b IN SELECT "№ счета", "Дата счета", предок, Сумма
     FROM Счета
@@ -26,7 +27,7 @@ FOR b IN SELECT "№ счета", "Дата счета", предок, Сумм�
         AND Отгрузка in ('Самовывоз', 'Курьер заказчика')
         AND Накладная IS NULL
         AND Фактура IS NULL
-        AND "Дата счета" > '2019-01-01' 
+        AND "Дата счета" > '2019-11-01' 
         AND Хозяин <> 91
         AND ( Сумма = fn_bill_payment("№ счета") OR Сумма = fn_bill_inetpayment("№ счета") )
         AND r4d_sent_count("№ счета")<3
@@ -49,7 +50,7 @@ LOOP
 поселок Мурино (м. Девяткино), улица Ясная, дом 11.
 Схема проезда по ссылке: https://www.kipspb.ru/upload/iblock/226/devyatkino_map.jpg\n
 Товар можно приехать и получить без дополнительного звонка.\n
-Для юридических лиц требуется печать или доверенность.\n
+Для юридических лиц требуется печать (при условии подписи генерального директора или главного бухгалтера) или доверенность.\n
 Время работы офиса и склада:
 понедельник - пятница, с 9:00 до 18:00 без перерыва,\n
 суббота с 9:00 до 16:00 без перерыва\n
@@ -70,7 +71,7 @@ LOOP
         RAISE NOTICE 'Send 1st reminder %', loc_dbg_str;
         do_send := TRUE;
     ELSIF cnt = 1 THEN -- there was 1st reminder
-      RAISE NOTICE '=== last_reminder=% / %' , loc_last_reminder_ts, loc_dbg_str;
+      RAISE NOTICE '== last_reminder=% / %' , loc_last_reminder_ts, loc_dbg_str;
       IF loc_last_interval >= '3 days'::INTERVAL 
       THEN
          RAISE NOTICE '=====2nd reminder::% / %', loc_last_interval, loc_dbg_str;
@@ -84,13 +85,16 @@ LOOP
     END IF;
 
     IF do_send THEN
+        IF arg_real_send THEN
+            loc_msg_status := 1;  -- send
+        ELSE
+            RAISE NOTICE 'TEST: NO send bill_no=% msg_to=%', b."№ счета", loc_msg_to;
+        END IF;
         INSERT INTO СчетОчередьСообщений ("№ счета", msg_status, msg_to, msg, msg_type)
-                                  VALUES (b."№ счета", 1, loc_msg_to, mstr, 5); -- 5 - готов к самовывозу
+                    VALUES (b."№ счета", loc_msg_status, loc_msg_to, mstr, 5); -- 5 - готов к самовывозу
     END IF;
 
 END LOOP;
 END;$BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION fn_check_ready4delivery()
-  OWNER TO arc_energo;
