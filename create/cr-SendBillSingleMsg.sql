@@ -12,8 +12,8 @@ AS $function$DECLARE
     msg_post_mobile varchar ;
     to_addr varchar ;
     mgr_addr varchar ;
-    mgr_name varchar ;
-    firm_name varchar ;    
+--    mgr_name varchar ;
+--    firm_name varchar ;    
 
     sender varchar := 'no-reply@kipspb.ru';
     pwd varchar := 'Never-adm1n';
@@ -32,8 +32,8 @@ AS $function$DECLARE
   loc_PG_EXCEPTION_HINT TEXT;
   loc_PG_EXCEPTION_CONTEXT TEXT;
 loc_bill_owner INTEGER;
-loc_ext_phone VARCHAR;
-loc_mob_phone VARCHAR;
+--loc_ext_phone VARCHAR;
+--loc_mob_phone VARCHAR;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -44,10 +44,13 @@ SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
        AND q.id = a_msg_id;
 
 IF NOT FOUND THEN
-   RAISE NOTICE 'Не найдено сообщение с id=%, формирование письма прервано', quote_nullable(a_msg_id);
+   RAISE NOTICE 'sendbillsinglemsg: Не найдено сообщение с id=%, формирование письма прервано', quote_nullable(a_msg_id);
    RETURN; 
+ELSE
+   RAISE NOTICE 'sendbillsinglemsg: Найдено сообщение с id=%, начинаем формирование письма', quote_nullable(a_msg_id);
 END IF;
 
+/***
 SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
 
 msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
@@ -59,6 +62,11 @@ msg_post := msg_post_common
         || COALESCE(msg_post_mobile, E'')
         || E'С уважением,\r\n' 
         || firm_name;
+***/
+select out_mgr_email INTO mgr_addr from bill_mgr_attrs(msg."№ счета");
+raise notice 'sendbillsinglemsg: mgr_addr=%', mgr_addr;
+msg_post := mgr_signature(msg."№ счета");
+raise notice 'sendbillsinglemsg: msg_post=%', msg_post;
 
 CASE msg.msg_to
    WHEN 0 THEN -- to client
@@ -98,7 +106,9 @@ ELSE
     SELECT "Номер"::VARCHAR into loc_order_no FROM bx_order WHERE "Счет"= msg."№ счета";
     IF msg.msg_type IN (1,5) THEN
        loc_subj := 'Изменение статуса счёта № '|| str_bill_no;
-    ELSIF msg.msg_type IN (2,3,4) THEN
+    ELSIF msg.msg_type IN (8) THEN
+        loc_subj := 'Мы получили Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' с сайта kipspb.ru';
+    ELSIF msg.msg_type IN (2,3,4,6) THEN
         loc_subj := 'Ваш заказ '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
         -- создать документы
         BEGIN
@@ -117,7 +127,7 @@ ELSE
             RAISE NOTICE 'ОШИБКА при создании документов автосчёта=[%] exception=[%]', msg."№ счета", loc_msg_problem;
         END;
 
-        RAISE NOTICE 'a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
+        RAISE NOTICE 'sendbillsinglemsg:: a_msg_id=%, sender=%, mgr_addr=%, to_addr=%, loc_bcc=%', a_msg_id, sender, mgr_addr, to_addr, loc_bcc;
     ELSIF 9 = msg.msg_type THEN -- оповещение менеджера
        loc_subj := 'Создан автосчёт '|| str_bill_no || ' по заказу '|| (SELECT COALESCE(loc_order_no, '') ) || ' на сайте kipspb.ru';
     ELSIF 11 = msg.msg_type THEN -- истекает срок оплаты счёта
