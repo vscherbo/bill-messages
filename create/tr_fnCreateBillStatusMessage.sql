@@ -137,7 +137,7 @@ END IF;
 /**/
 RAISE NOTICE 'NEW.Статус=%, NEW.ИнтернетЗаказ=%, loc_update_inet_order_status=%', NEW."Статус", NEW."ИнтернетЗаказ", loc_update_inet_order_status ;  
 IF loc_update_inet_order_status THEN
-    IF NEW."ИнтернетЗаказ" > 14000 AND NEW."ИнтернетЗаказ" < 99999 THEN -- грубое отсечение нашего сайта от других площадок
+    IF NEW."ИнтернетЗаказ" > 60000 AND NEW."ИнтернетЗаказ" < 199999 THEN -- грубое отсечение нашего сайта от других площадок
         PERFORM "fn_InetOrderNewStatus"(NEW."Статус", NEW."ИнтернетЗаказ");
     END IF;
 END IF;
