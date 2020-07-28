@@ -50,6 +50,7 @@ BEGIN
                     AND q.msg_type IN (1,5,11) -- до окончания отладки sendbillmsgparam
     LOOP
 
+/**
 SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
 
 msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
@@ -61,7 +62,8 @@ msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
                 || COALESCE(msg_post_mobile, E'')
                 || E'С уважением,\r\n' 
                 || firm_name;
-
+**/
+        msg_post := mgr_signature(msg."№ счета");
         current_srv := smtphost() ;
         current_port := smtpport() ;
 
