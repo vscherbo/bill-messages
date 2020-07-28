@@ -52,7 +52,7 @@ RAISE NOTICE 'sender=%, pwd=%, current_srv=%, current_port=%, to_addr=%, bcc=%, 
 
 BEGIN 
     SELECT * INTO send_status, loc_msg_qid, rcpt_refused 
-    FROM send_attachment(sender, pwd, sender, current_srv, current_port, to_addr, bcc, 
+    FROM send_attachment(sender, pwd, COALESCE(reply_to, sender), current_srv, current_port, to_addr, bcc, 
                     loc_subj, full_msg, string_to_array(str_docs, ',') );
     exception WHEN OTHERS THEN 
         GET STACKED DIAGNOSTICS 
