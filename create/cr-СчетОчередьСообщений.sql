@@ -27,8 +27,8 @@ WITH (
 );
 ALTER TABLE "СчетОчередьСообщений"
   OWNER TO arc_energo;
-COMMENT ON COLUMN "СчетОчередьСообщений".msg_status IS '0-sent, 1-new, 2-периодический, 
-10 - sender address not found,  
+COMMENT ON COLUMN "СчетОчередьСообщений".msg_status IS '0-sent, 1-new, 2-периодический,
+10 - sender address not found,
 11- SMTPServerDisconnected
 12 - SMTPSenderRefused
 13 - SMTPRecipientsRefused
@@ -53,7 +53,9 @@ COMMENT ON COLUMN "СчетОчередьСообщений".msg_type IS 'Тип
 5 - готов к самовывозу (разновидность 1)
 6 - запрос акта сверки
 7 - отправка акта сверки
-9 - оповещение менеджера о создании автосчёта';
+8 - заказ получен
+9 - оповещение менеджера о создании автосчёта
+11 - истекает срок оплаты счёта';
 COMMENT ON COLUMN "СчетОчередьСообщений".msg_subj IS 'тема (subject) сообщения';
 
 
