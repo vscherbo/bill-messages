@@ -9,12 +9,10 @@ AS $function$DECLARE
     full_msg varchar ;
     msg_pre VARCHAR = E'Это письмо сформировано автоматически, отвечать на него не нужно.\r\n\r\n' ;
     msg_post_common VARCHAR = E'\r\n\r\nНа все Ваши вопросы Вам ответит Ваш персональный менеджер:\r\n';
-    msg_post varchar ;
+    msg_post varchar := E'';
     msg_post_mobile varchar ;
     to_addr varchar ;
     mgr_addr varchar ;
-    mgr_name varchar ;
-    firm_name varchar ;    
 
     current_port integer;
     current_srv varchar;
@@ -30,8 +28,12 @@ AS $function$DECLARE
     loc_PG_EXCEPTION_DETAIL varchar;
     loc_PG_EXCEPTION_HINT varchar;
     loc_PG_EXCEPTION_CONTEXT varchar;
+    /**
+    mgr_name varchar ;
+    firm_name varchar ;    
     loc_ext_phone VARCHAR; 
-loc_mob_phone VARCHAR;
+    loc_mob_phone VARCHAR;
+    **/
 BEGIN
     IF pg_production() THEN
         pwd := 'Never-adm1n';
@@ -50,26 +52,17 @@ BEGIN
                     AND q.msg_type IN (1,5,11) -- до окончания отладки sendbillmsgparam
     LOOP
 
-/**
-SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
+        -- SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
+        select out_mgr_email INTO mgr_addr from bill_mgr_attrs(msg."№ счета");
 
-msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
-
-        msg_post := msg_post_common
-                || mgr_name
-                || E', e-mail: ' || mgr_addr || E',\r\n'
-                || E'телефон:  (812)327-327-4, доб. '|| loc_ext_phone || E'\r\n'
-                || COALESCE(msg_post_mobile, E'')
-                || E'С уважением,\r\n' 
-                || firm_name;
-**/
-        msg_post := mgr_signature(msg."№ счета");
         current_srv := smtphost() ;
         current_port := smtpport() ;
 
         CASE msg.msg_to
            WHEN 0 THEN -- to client
               to_addr := msg.ЕАдрес;
+              msg_post := mgr_signature(msg."№ счета");
+              raise notice 'fn_sendbillmsg: подпись для Счёта=%: msg_post=%', msg."№ счета", msg_post;
               -- msg_pre := E'Уважаемый клиент!\r\n\r\n' || msg_pre;
            WHEN 1 THEN -- to manager
               to_addr := mgr_addr;
@@ -93,6 +86,9 @@ msg_post_mobile := E'моб.т./WhatsApp/Viber: ' || loc_mob_phone || E'\r\n';
             ELSIF msg.ЕАдрес IS NULL THEN
                 loc_msg_status := 997;
                 loc_msg_problem := 'Не указан e-mail';
+            ELSE
+                loc_msg_problem := 'fn_sendbillmsg: to_addr IS NULL';
+                RAISE NOTICE 'msg."№ счета"=%, loc_msg_problem=%', msg."№ счета", loc_msg_problem;
             END IF;
         ELSE
             SELECT format('sender=%s, pwd=%s, mgr_addr=%s, current_srv=%s, current_port=%s, to_addr=%s, subj=%s, msg=%s', 
