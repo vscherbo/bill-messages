@@ -34,6 +34,7 @@ AS $function$DECLARE
 loc_bill_owner INTEGER;
 --loc_ext_phone VARCHAR;
 --loc_mob_phone VARCHAR;
+    arc_email_to varchar ;
 BEGIN
 
 SELECT q.*, c.ЕАдрес, b.КодРаботника INTO msg
@@ -63,8 +64,8 @@ msg_post := msg_post_common
         || E'С уважением,\r\n' 
         || firm_name;
 ***/
-select out_mgr_email INTO mgr_addr from bill_mgr_attrs(msg."№ счета");
-raise notice 'sendbillsinglemsg: mgr_addr=%', mgr_addr;
+select out_mgr_email, out_email_to INTO mgr_addr, arc_email_to from bill_mgr_attrs(msg."№ счета");
+raise notice 'sendbillsinglemsg: mgr_addr=%, email_to=%', mgr_addr, arc_email_to;
 msg_post := mgr_signature(msg."№ счета");
 raise notice 'sendbillsinglemsg: msg_post=%', msg_post;
 
@@ -82,8 +83,8 @@ CASE msg.msg_to
       loc_bcc := mgr_addr;
       -- loc_bcc := mgr_addr || ',vscherbo@kipspb.ru';
    WHEN 1 THEN -- to manager
-      to_addr := mgr_addr;
-      -- loc_bcc := 'vscherbo@gmail.com'; -- DEBUG only
+      -- before 2020-08-24 to_addr := mgr_addr;
+      to_addr := arc_email_to;
       msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
    WHEN 2 THEN -- to file
       to_addr := msg.ЕАдрес;

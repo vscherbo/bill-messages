@@ -34,6 +34,8 @@ AS $function$DECLARE
     loc_ext_phone VARCHAR; 
     loc_mob_phone VARCHAR;
     **/
+    arc_email_to varchar;
+
 BEGIN
     IF pg_production() THEN
         pwd := 'Never-adm1n';
@@ -53,7 +55,7 @@ BEGIN
     LOOP
 
         -- SELECT * FROM autobill_mgr_attrs(msg."№ счета") INTO mgr_addr, mgr_name, firm_name, loc_ext_phone, loc_mob_phone;
-        select out_mgr_email INTO mgr_addr from bill_mgr_attrs(msg."№ счета");
+        select out_mgr_email, out_email_to INTO mgr_addr, arc_email_to from bill_mgr_attrs(msg."№ счета");
 
         current_srv := smtphost() ;
         current_port := smtpport() ;
@@ -65,7 +67,14 @@ BEGIN
               raise notice 'fn_sendbillmsg: подпись для Счёта=%: msg_post=%', msg."№ счета", msg_post;
               -- msg_pre := E'Уважаемый клиент!\r\n\r\n' || msg_pre;
            WHEN 1 THEN -- to manager
-              to_addr := mgr_addr;
+              -- before 2020-08-24 to_addr := mgr_addr;
+              to_addr := arc_email_to;
+              -- DEBUG only
+              if arc_email_to = 'snitko@kipspb.ru' then
+                -- loc_bcc := 'arutyun@kipspb.ru';
+                RAISE NOTICE 'Без копии Арутюну. arc_email_to=%', arc_email_to;
+              end if;
+
               msg_post := E'\r\n\r\nПочтовый робот АРК Энергосервис';
            WHEN 2 THEN -- to file
               to_addr := msg.ЕАдрес;
@@ -91,8 +100,8 @@ BEGIN
                 RAISE NOTICE 'msg."№ счета"=%, loc_msg_problem=%', msg."№ счета", loc_msg_problem;
             END IF;
         ELSE
-            SELECT format('sender=%s, pwd=%s, mgr_addr=%s, current_srv=%s, current_port=%s, to_addr=%s, subj=%s, msg=%s', 
-                            sender, pwd, mgr_addr, current_srv, current_port, to_addr, 
+            SELECT format('sender=%s, pwd=%s, mgr_addr=%s, arc_email_to=%s current_srv=%s, current_port=%s, to_addr=%s, subj=%s, msg=%s', 
+                            sender, pwd, mgr_addr, arc_email_to, current_srv, current_port, to_addr, 
                             'Изменение статуса счёта № '|| to_char(msg."№ счета", 'FM9999-9999'), full_msg) INTO loc_MESSAGE_TEXT ;
             RAISE NOTICE '######################################## %', loc_MESSAGE_TEXT;
             /*** DEBUG ***/
